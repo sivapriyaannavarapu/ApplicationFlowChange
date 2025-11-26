@@ -18,11 +18,14 @@ import com.application.dto.AppSeriesDTO;
 import com.application.dto.EmployeeApplicationsDTO;
 import com.application.dto.FormSubmissionDTO;
 import com.application.dto.GenericDropdownDTO;
+import com.application.dto.LocationAutoFillDTO;
 import com.application.entity.AdminApp;
 import com.application.entity.BalanceTrack;
 import com.application.entity.Campus;
+import com.application.entity.City;
 import com.application.entity.Dgm;
 import com.application.entity.Distribution;
+import com.application.entity.District;
 import com.application.entity.UserAdminView;
 import com.application.entity.Zone;
 import com.application.repository.AcademicYearRepository;
@@ -194,6 +197,66 @@ public class DgmService {
 		// Calling the updated repository method:
 		return dgmRepository.findDistinctActiveEmployeesByZoneId(zoneId);
 	}
+	
+public List<Double> getApplicationFees(int empId, int academicYearId) { // UPDATED SIGNATURE
+	    
+	    // 1. Check AdminApp table first (UPDATED CALL)
+	    List<Integer> adminFees = adminAppRepository.findAmountsByEmpIdAndAcademicYear(empId, academicYearId);
+
+	    // 2. If AdminApp has data, convert to Double and return
+	    if (adminFees != null && !adminFees.isEmpty()) {
+	        return adminFees.stream()
+	                .map(Double::valueOf)
+	                .collect(Collectors.toList());
+	    }
+
+	    // 3. If AdminApp is empty, check BalanceTrack table (UPDATED CALL)
+	    List<Float> balanceFees = balanceTrackRepository.findAmountsByEmpIdAndAcademicYear(empId, academicYearId);
+
+	    if (balanceFees != null && !balanceFees.isEmpty()) {
+	        return balanceFees.stream()
+	                .map(Double::valueOf)
+	                .collect(Collectors.toList());
+	    }
+
+	    // 4. If both are empty, return an empty list
+	    return Collections.emptyList();
+	}
+
+
+public LocationAutoFillDTO getAutoPopulateData(int empId, String category) {
+
+    // 1️⃣ Only apply logic when category = "school"
+    if (!"school".equalsIgnoreCase(category)) {
+        return null;  
+    }
+
+    // 2️⃣ Get active DGM record for employee
+    Dgm dgm = dgmRepository
+            .findActiveDgm(empId, 1)
+            .orElse(null);
+
+    if (dgm == null) {
+        return null;
+    }
+
+    // 3️⃣ DISTRICT (direct from Dgm table)
+    District district = dgm.getDistrict();
+
+    Integer districtId   = district != null ? district.getDistrictId() : null;
+    String districtName  = district != null ? district.getDistrictName() : null;
+
+    // 4️⃣ CITY (via Campus)
+    Campus campus = dgm.getCampus();
+    City city = (campus != null) ? campus.getCity() : null;
+
+    Integer cityId   = city != null ? city.getCityId() : null;
+    String cityName  = city != null ? city.getCityName() : null;
+
+    // 5️⃣ Return final DTO
+    return new LocationAutoFillDTO(cityId, cityName, districtId, districtName);
+}
+	
 
 	public Optional<AppDistributionDTO> getActiveAppRange(int issuedToEmpId, int academicYearId) {
 		// Pass '1' explicitly for the isActive condition

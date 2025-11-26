@@ -20,6 +20,7 @@ import com.application.dto.ApplicationStartEndDto;
 import com.application.dto.EmployeeApplicationsDTO;
 import com.application.dto.EmployeesDto;
 import com.application.dto.GenericDropdownDTO;
+import com.application.dto.LocationAutoFillDTO;
 import com.application.dto.NextAppNumberDTO;
 import com.application.entity.AcademicYear;
 import com.application.entity.Campus;
@@ -367,5 +368,24 @@ public class DistributionGet {
 
 	        // Return the list with HTTP 200 OK
 	        return ResponseEntity.ok(dgmEmployees);
+	    }
+	    
+	    @GetMapping("/getallamounts/{empId}/{academicYearId}") // UPDATED PATH
+	    public ResponseEntity<List<Double>> getFeeDropdown(
+	        @PathVariable int empId,
+	        @PathVariable int academicYearId // NEW PATH VARIABLE
+	    ) {
+	        List<Double> fees = applicationService.getApplicationFees(empId, academicYearId);
+	        return ResponseEntity.ok(fees);
+	    }
+	    
+	    @GetMapping("/district_city_autopopulate/{empId}/{category}")
+	    public ResponseEntity<LocationAutoFillDTO> autoFill(
+	            @PathVariable int empId,
+	            @PathVariable String category) {
+
+	        LocationAutoFillDTO dto = applicationService.getAutoPopulateData(empId, category);
+
+	        return ResponseEntity.ok(dto);
 	    }
 }
