@@ -34,12 +34,20 @@ public class StudentPersonalDetails {
 	private Date dob;
 //	private String mail;
 //	private int mail_is_verified;
-	private int caste_id;
-	private int religion_id;
+//	private int caste_id;
+//	private int religion_id;
 	
 	@ManyToOne
 	@JoinColumn(name = "food_type_id")
 	private FoodType foodType;
+	
+	@ManyToOne
+	@JoinColumn(name = "caste_id")
+	private Caste caste;
+	
+	@ManyToOne
+	@JoinColumn(name = "religion_id")
+	private Religion religion;
 	
 	@ManyToOne
 	@JoinColumn(name = "stud_adms_id")

@@ -348,13 +348,14 @@ public class ApplicationNewConfirmationService {
             
             // 1. Fetch existing parents and put them in a Map for easy lookup
             // We use the RelationType ID as the unique key (e.g., 1=Father, 2=Mother)
-            Map<Integer, ParentDetails> existingParentsMap = parentRepo.findByStudentAcademicDetails(student)
-                .stream()
-                .filter(p -> p.getStudentRelation() != null)
-                .collect(Collectors.toMap(
-                    p -> p.getStudentRelation().getStudentRelationId(),
-                    Function.identity()
-                ));
+        	Map<Integer, ParentDetails> existingParentsMap = parentRepo
+        		    .findByStudentAcademicDetails(student)
+        		    .stream()
+        		    .filter(p -> p.getStudentRelation() != null)  // also fix getter name here
+        		    .collect(Collectors.toMap(
+        		        p -> p.getStudentRelation().getRelationId(),  // Fixed
+        		        Function.identity()
+        		    ));
             
             
  
@@ -536,7 +537,7 @@ public class ApplicationNewConfirmationService {
 		        StudentApplicationTransaction transaction = new StudentApplicationTransaction();
 		        
 		        // Link to the main payment record
-		        transaction.setPaymnetDetails(savedPaymentDetails);
+		        transaction.setPaymentDetails(savedPaymentDetails);
 		        transaction.setPaymentMode(savedPaymentDetails.getPaymenMode());
 		        
 		        // Set common transaction fields

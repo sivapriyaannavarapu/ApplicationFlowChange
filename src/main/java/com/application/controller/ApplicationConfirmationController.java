@@ -282,37 +282,28 @@ public class ApplicationConfirmationController {
     }
                  
     
-    @PostMapping("/confirm")
-    public ResponseEntity<ApiResponse<?>> saveStudentConfirmation(
-            @RequestBody StudentConfirmationDTO dto) {
-        
-        try {
-            // This is the service method we built
-            StudentAcademicDetails savedStudent = confirmationService.saveOrUpdateConfirmation(dto);
-            
-            // Send a 200 OK response with the student data
-            return ResponseEntity.ok(
-                ApiResponse.success(savedStudent, "Student confirmation saved successfully.")
-            );
-            
-        } catch (EntityNotFoundException e) {
-            // This catches errors like "Student not found", "Status not found", etc.
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(e.getMessage()));
-                    
-        } catch (DataIntegrityViolationException e) {
-            // This will catch any future "NOT NULL" constraint errors
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Database error: " + e.getMostSpecificCause().getMessage()));
+    @PostMapping("/confirm-school")
+public ResponseEntity<?> saveStudentConfirmation(@RequestBody StudentConfirmationDTO dto) {
+    try {
+        confirmationService.saveOrUpdateConfirmation(dto);
 
-        } catch (Exception e) {
-            // This catches all other unexpected errors
-            e.printStackTrace(); // Log the full error for debugging
-            
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("An unexpected error occurred: " + e.getMessage()));
-        }
+        return ResponseEntity.ok("Student confirmation saved successfully.");
+
+    } catch (EntityNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(e.getMessage());
+
+    } catch (DataIntegrityViolationException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("Database error: " + e.getMostSpecificCause().getMessage());
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Unexpected error: " + e.getMessage());
     }
+}
+
     
     
     @GetMapping("/orientation-fee")//used/n
@@ -346,6 +337,8 @@ public class ApplicationConfirmationController {
                     .body(ApiResponse.error("Failed to fetch orientation fee: " + e.getMessage()));
         }
     }
+    
+    
     
 
 }

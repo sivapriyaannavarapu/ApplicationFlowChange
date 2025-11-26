@@ -1,6 +1,7 @@
 package com.application.service;
  
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ import com.application.dto.CourseFeeDTO;
 import com.application.dto.GenericDropdownDTO;
 import com.application.dto.OrientationBatchDetailsDTO;
 import com.application.dto.OrientationDTO;
+import com.application.dto.OrientationFeeAndDatesDTO;
 import com.application.dto.OrientationResponseDTO;
 import com.application.dto.ParentSummaryDTO;
 import com.application.dto.PaymentDetailsDTO;
@@ -68,6 +70,7 @@ import com.application.repository.CmpsOrientationBatchFeeViewRepository;
 import com.application.repository.CmpsOrientationProgramViewRepository;
 import com.application.repository.CmpsOrientationRepository;
 import com.application.repository.CmpsOrientationStreamViewRepository;
+import com.application.repository.CollegeMasterRepository;
 import com.application.repository.ConcessionReasonRepository;
 import com.application.repository.ConcessionTypeRepository;
 import com.application.repository.DistributionRepository;
@@ -86,6 +89,7 @@ import com.application.repository.ParentDetailsRepository;
 import com.application.repository.PaymentDetailsRepository;
 import com.application.repository.PaymentModeRepository;
 import com.application.repository.PinCodeRepository;
+import com.application.repository.PreSchoolDetailsRepository;
 import com.application.repository.ProConcessionRepository;
 import com.application.repository.ProgramNameRepository;
 import com.application.repository.QuotaRepository;
@@ -182,12 +186,56 @@ public class StudentAdmissionService {
     @Autowired private StudentApplicationTransactionRepository studentApplicationTransactionRepo;
     @Autowired private MandalRepository mandalRepository;
     @Autowired private AdminAppRepository adminAppRepository;
+    @Autowired private PreSchoolDetailsRepository preSchoolDetailsRepository;
+    @Autowired private CollegeMasterRepository collegeMasterRepository;
 
 
     StudentAdmissionService(CampusDetailsRepository campusDetailsRepository) {
         this.campusDetailsRepository = campusDetailsRepository;
     }
  
+    public List<GenericDropdownDTO> getCampusesByCityId(int cityId) {
+        List<GenericDropdownDTO> campuses = campusRepo.findCampusesByCityId(cityId);
+ 
+        // Always return an empty list if no campuses
+        return campuses != null ? campuses : Collections.emptyList();
+    }
+    
+    public String getCampusType(Integer orientationId, Integer campusId) {
+        List<String> types = cmpsOrientationBatchFeeViewRepo.findDistinctCmpsType(orientationId, campusId);
+ 
+        if (types == null || types.isEmpty()) {
+            return "";
+        }
+ 
+        return types.get(0); // return only 1 cmpsType
+    }
+    
+   
+ 
+ 
+    public OrientationFeeAndDatesDTO getFeeAndDates(Integer orientationId) {
+        OrientationFeeAndDatesDTO result = cmpsOrientationBatchFeeViewRepo.getOrientationFeeAndDatesDistinct(orientationId);
+ 
+        if (result == null) {
+            throw new RuntimeException("No orientation details found for ID: " + orientationId);
+        }
+ 
+        return result;
+    }
+    
+    public List<GenericDropdownDTO> getByCategoryAndDistrict(Integer newDistrictId, String category) {
+ 
+        if (category.equalsIgnoreCase("school")) {
+            return preSchoolDetailsRepository.getSchoolsByDistrict(newDistrictId);
+        }
+ 
+        if (category.equalsIgnoreCase("college")) {
+            return collegeMasterRepository.getCollegesByNewDistrict(newDistrictId);
+        }
+ 
+        throw new RuntimeException("Invalid category. Allowed: school, college");
+    }
  
 //    @Cacheable("religions")
     public List<GenericDropdownDTO> getAllReligions() {
@@ -304,7 +352,7 @@ public class StudentAdmissionService {
  
 //    @Cacheable("studentRelations")
     public List<GenericDropdownDTO> getAllStudentRelations()
-    {         return studentRelationRepo.findAll().stream().map(relation -> new GenericDropdownDTO(relation.getStudentRelationId(), relation.getStudentRelationType())).collect(Collectors.toList()); }
+    {         return studentRelationRepo.findAll().stream().map(relation -> new GenericDropdownDTO(relation.getRelationId(), relation.getRelationType())).collect(Collectors.toList()); }
     
     
 //    @Cacheable(value = "studyTypesByCampusAndClass", key = "{#cmpsId, #classId}")
@@ -665,11 +713,7 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
 		personalDetails.setStud_aadhaar_no(formData.getAadharCardNo());
 		personalDetails.setDob(formData.getDob());
 		personalDetails.setCreated_by(formData.getCreatedBy());
- 
-		// these setted to 1 again these will be updated in the confirmation form
-		personalDetails.setCaste_id(3); // Or use personalDetails.setCaste_id(1) if you don't have the mapping
-		personalDetails.setReligion_id(3); // Or use personalDetails.setReligion_id(1)
- 
+
 		// TODO: Check if blood_group_id is also NOT NULL and add a default if needed
 		// BloodGroup defaultBloodGroup = bloodGroupRepo.findById(1)
 		// .orElseThrow(() -> new EntityNotFoundException("Default BloodGroup (ID: 1)
@@ -782,7 +826,7 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
 		        StudentApplicationTransaction transaction = new StudentApplicationTransaction();
 		        
 		        // Link to the main payment record
-		        transaction.setPaymnetDetails(savedPaymentDetails);
+		        transaction.setPaymentDetails(savedPaymentDetails);
 		        transaction.setPaymentMode(savedPaymentDetails.getPaymenMode());
 		        
 		        // Set common transaction fields
@@ -920,10 +964,6 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
 		personalDetails.setDob(formData.getDob());
 		personalDetails.setCreated_by(formData.getCreatedBy());
  
-		// these setted to 1 again these will be updated in the confirmation form
-		personalDetails.setCaste_id(3); // Or use personalDetails.setCaste_id(1) if you don't have the mapping
-		personalDetails.setReligion_id(3); // Or use personalDetails.setReligion_id(1)
- 
 		// TODO: Check if blood_group_id is also NOT NULL and add a default if needed
 		// BloodGroup defaultBloodGroup = bloodGroupRepo.findById(1)
 		// .orElseThrow(() -> new EntityNotFoundException("Default BloodGroup (ID: 1)
@@ -999,7 +1039,7 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
         Optional<StudentPersonalDetails> personalOpt = personalDetailsRepo.findByStudentAcademicDetails(student);
         Optional<StudentOrientationDetails> orientationOpt = orientationDetailsRepo.findByStudentAcademicDetails(student);
         // Assuming Father has relationTypeId = 1
-        Optional<ParentDetails> fatherOpt = parentDetailsRepo.findByStudentAcademicDetailsAndStudentRelationStudentRelationId(student, 1);
+        Optional<ParentDetails> fatherOpt = parentDetailsRepo.findByStudentAcademicDetailsAndStudentRelationRelationId(student, 1);
         Optional<StudentAddress> addressOpt = addressRepo.findByStudentAcademicDetails(student);
 
         // 3. Create the main DTO
@@ -1112,7 +1152,7 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
 	    personalDetails.setStudentAcademicDetails(academicDetails); // Set the relationship
 
 	    // Assuming Father has relationTypeId = 1
-	    ParentDetails fatherDetails = parentDetailsRepo.findByStudentAcademicDetailsAndStudentRelationStudentRelationId(academicDetails, 1)
+	    ParentDetails fatherDetails = parentDetailsRepo.findByStudentAcademicDetailsAndStudentRelationRelationId(academicDetails, 1)
 	        .orElse(new ParentDetails());
 	    fatherDetails.setStudentAcademicDetails(academicDetails);
 	    // You'll need to fetch and set the StudentRelation object for Father (ID 1)

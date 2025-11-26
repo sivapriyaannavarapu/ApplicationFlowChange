@@ -16,8 +16,7 @@ public interface StudentRelationRepository extends JpaRepository<StudentRelation
      /**
       * --- FIX: Use the Java field name 'studentRelationType' (camelCase) ---
       */
-     @Query("SELECT sr FROM StudentRelation sr WHERE sr.studentRelationType = :type") // <-- Changed here
-     Optional<StudentRelation> findByStudentRelationType(@Param("type") String studentRelationType);
+	Optional<StudentRelation> findByRelationType(String relationType);
     
     /**
      * This method is correct because it uses the Java field name 'isActive'

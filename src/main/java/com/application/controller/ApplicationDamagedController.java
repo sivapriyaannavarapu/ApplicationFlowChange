@@ -15,15 +15,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.application.dto.AppStatusDetailsDTO;
+import com.application.dto.AppStatusResponseDTO;
 import com.application.dto.ApplicationDamagedDto;
 import com.application.dto.CampusDto;
 import com.application.dto.EmployeeDto;
 import com.application.dto.GenericDropdownDTO;
-import com.application.entity.AppStatus;
 import com.application.entity.AppStatusTrackView;
 import com.application.entity.ApplicationStatus;
 import com.application.entity.Campus;
-import com.application.entity.Zone;
 import com.application.repository.DgmRepository;
 import com.application.repository.EmployeeRepository;
 import com.application.service.ApplicationDamagedService;
@@ -110,12 +109,14 @@ public ResponseEntity<List<GenericDropdownDTO>> getActiveCampusesForDropdown() {
     @PostMapping("/status")
     public ResponseEntity<?> createApplicationStatus(@RequestBody ApplicationDamagedDto requestDTO) {
         try {
-            AppStatus savedStatus = applicationDamagedService.saveOrUpdateApplicationStatus(requestDTO);
-            return new ResponseEntity<>(savedStatus, HttpStatus.CREATED);
+            AppStatusResponseDTO response = applicationDamagedService.saveOrUpdateApplicationStatus(requestDTO);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+ 
         } catch (Exception e) {
-            return new ResponseEntity<>("Error saving application status: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+ 
  
     @GetMapping("/statuses")
     public ResponseEntity<List<ApplicationStatus>> getAllStatuses() {

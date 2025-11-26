@@ -1,5 +1,6 @@
 package com.application.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.application.dto.AppStatusDetailsDTO;
+import com.application.dto.AppStatusResponseDTO;
 import com.application.dto.ApplicationDamagedDto;
 import com.application.dto.CampusDto;
 import com.application.dto.EmployeeDto;
@@ -25,7 +27,9 @@ import com.application.entity.CampusProView;
 import com.application.entity.Dgm;
 import com.application.entity.Employee;
 import com.application.entity.Status;
+import com.application.entity.StudentAcademicDetails;
 import com.application.entity.Zone;
+import com.application.exception.ApplicationAlreadyExistsException;
 import com.application.repository.AppStatusRepository;
 import com.application.repository.AppStatusTrackViewRepository;
 import com.application.repository.ApplicationStatusRepository;
@@ -34,6 +38,7 @@ import com.application.repository.CampusRepository;
 import com.application.repository.DgmRepository;
 import com.application.repository.EmployeeRepository;
 import com.application.repository.StatusRepository;
+import com.application.repository.StudentAcademicDetailsRepository;
 import com.application.repository.ZoneRepository;
 
 import jakarta.persistence.EntityManager;
@@ -55,6 +60,7 @@ public class ApplicationDamagedService {
     @Autowired public ApplicationStatusRepository applicationStatusRepository;
     @Autowired public DgmRepository dgmRepository;
     @Autowired public ZoneRepository zoneRepository;
+    @Autowired private StudentAcademicDetailsRepository studentAcademicDetailsRepository;
 
     // ---------------------- READ METHODS (CACHEABLE) ----------------------
 
@@ -137,39 +143,103 @@ public class ApplicationDamagedService {
 
     // ---------------------- WRITE METHODS ----------------------
 
-    @Transactional
-    public AppStatus saveOrUpdateApplicationStatus(ApplicationDamagedDto dto) {
-        if (dto == null) throw new IllegalArgumentException("DTO cannot be null");
-
+  public AppStatusResponseDTO  saveOrUpdateApplicationStatus(ApplicationDamagedDto dto) {
+ 
+        if (dto == null)
+            throw new IllegalArgumentException("DTO cannot be null");
+ 
+        Long appNo = dto.getApplicationNo().longValue();
+ 
+        // 1️⃣ Check if application already used (Exists in Student table)
+        Optional<StudentAcademicDetails> studentOpt =
+                studentAcademicDetailsRepository.findByStudAdmsNo(appNo);
+ 
+        if (studentOpt.isPresent()) {
+            String studStatus = studentOpt.get().getStatus().getStatus_type();
+            throw new ApplicationAlreadyExistsException(
+                    "Application already USED with status: " + studStatus
+            );
+        }
+ 
+        // 2️⃣ Check if already exists in app_status
         Optional<AppStatus> existingAppStatusOpt =
-                dto.getApplicationNo() != null ? appStatusRepository.findByAppNo(dto.getApplicationNo())
-                                               : Optional.empty();
-
-        AppStatus appStatus = existingAppStatusOpt.orElse(new AppStatus());
-
+                appStatusRepository.findByApp_no(dto.getApplicationNo());
+ 
+        AppStatus appStatus;
+ 
+        if (existingAppStatusOpt.isPresent()) {
+            // If exists → check whether at PRO stage
+            appStatus = existingAppStatusOpt.get();
+ 
+            if (appStatus.getStatus().getStatus_id() != 1) { // 1 = PRO
+                throw new IllegalStateException(
+                        "Application is not with PRO. Current status: " +
+                        appStatus.getStatus().getStatus_type()
+                );
+            }
+ 
+            // Allowed to damage → Updating existing record
+        } else {
+            // Create a new damage record
+            appStatus = new AppStatus();
+            appStatus.setApp_no(dto.getApplicationNo());
+            appStatus.setCreated_by(2);
+        }
+ 
+        // 3️⃣ Fetch reference objects
         Status status = statusRepository.findById(dto.getStatusId())
                 .orElseThrow(() -> new EntityNotFoundException("Status not found"));
+ 
         Campus campus = campusRepository.findById(dto.getCampusId())
                 .orElseThrow(() -> new EntityNotFoundException("Campus not found"));
+ 
         Employee proEmployee = employeeRepository.findById(dto.getProId())
                 .orElseThrow(() -> new EntityNotFoundException("PRO Employee not found"));
+ 
         Zone zone = zoneRepository.findById(dto.getZoneId())
                 .orElseThrow(() -> new EntityNotFoundException("Zone not found"));
+ 
         Employee dgmEmployee = employeeRepository.findById(dto.getDgmEmpId())
                 .orElseThrow(() -> new EntityNotFoundException("DGM Employee not found"));
-
-        appStatus.setApp_no(dto.getApplicationNo());
+ 
+        // 4️⃣ Set values
         appStatus.setReason(dto.getReason());
-        appStatus.setStatus(status);
+        appStatus.setStatus(status); // here status = DAMAGED
         appStatus.setCampus(campus);
         appStatus.setEmployee(proEmployee);
         appStatus.setZone(zone);
         appStatus.setEmployee2(dgmEmployee);
-        appStatus.setIs_active(dto.getStatusId() == 1 ? 1 : 0);
-        appStatus.setCreated_by(2);
-
-        return appStatusRepository.save(appStatus);
+        if (dto.getStatusId() == 3) {        // AVAILABLE
+            appStatus.setIs_active(0);
+        } else {
+            appStatus.setIs_active(1);        // DAMAGED etc.
+        }
+        appStatus.setUpdated_date(LocalDate.now());
+ 
+        // 5️⃣ Save
+        AppStatus saved = appStatusRepository.save(appStatus);
+ 
+        return convertToDTO(saved);
     }
+    private AppStatusResponseDTO convertToDTO(AppStatus entity) {
+    	
+ 
+    	ApplicationStatus status = applicationStatusRepository.findById(entity.getStatus().getStatus_id())
+                .orElse(null);
+        AppStatusResponseDTO dto = new AppStatusResponseDTO();
+ 
+        dto.setAppNo(entity.getApp_no());
+        dto.setStatus(status != null ? status.getStatus() : null);
+        dto.setCampusName(entity.getCampus().getCampusName());
+        dto.setProName(entity.getEmployee().getFirst_name());
+        dto.setZoneName(entity.getZone().getZoneName());
+        dto.setDgmName(entity.getEmployee2().getFirst_name());
+        dto.setReason(entity.getReason());
+        dto.setUpdatedDate(entity.getUpdated_date().toString());
+ 
+        return dto;
+    }
+ 
 
     // ---------------------- SUPPORT METHODS ----------------------
 

@@ -1,6 +1,7 @@
 package com.application.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,5 +23,8 @@ public interface CampusProViewRepository extends JpaRepository<CampusProView, In
 	             AND cpv.is_active = 1
 	           """)
 	    List<Integer> findEmployeeIdsByCampusId(@Param("campusId") int campusId);
+	    
+	    @Query("SELECT c FROM CampusProView c WHERE c.cmps_emp_id = :empId")
+	    Optional<CampusProView> findByEmp_id(@Param("empId") int empId);
 
 }

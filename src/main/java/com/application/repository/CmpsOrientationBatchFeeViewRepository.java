@@ -14,6 +14,7 @@ import com.application.dto.GenericDropdownDTO;
 import com.application.dto.OrientationBatchDetailsDTO;
 import com.application.dto.OrientationDTO;
 import com.application.dto.OrientationDropdownDTO;
+import com.application.dto.OrientationFeeAndDatesDTO;
 import com.application.entity.CmpsOrientationBatchFeeView;
 
 @Repository
@@ -88,4 +89,28 @@ public interface CmpsOrientationBatchFeeViewRepository extends JpaRepository<Cmp
 	     List<OrientationDropdownDTO> findDistinctOrientationsByCampusAndClass(
 	             @Param("campusId") int campusId,
 	             @Param("classId") int classId);
+	 
+	// In CmpsOrientationBatchFeeViewRepository.java (or equivalent)
+	 @Query(value = "SELECT c FROM CmpsOrientationBatchFeeView c " +
+	                "WHERE c.orientationId = :orientationId AND c.cmpsId = :cmpsId AND c.classId = :classId " +
+	                "ORDER BY c.orientationStartDate ASC " +
+	                "LIMIT 1")
+	 Optional<CmpsOrientationBatchFeeView> findSingleBestBatchDetails(
+	     @Param("orientationId") Integer orientationId, 
+	     @Param("cmpsId") Integer cmpsId, 
+	     @Param("classId") Integer classId
+	 );
+	 
+	 @Query("SELECT DISTINCT c.cmpsType FROM CmpsOrientationBatchFeeView c " +
+		       "WHERE c.orientationId = :orientationId AND c.cmpsId = :campusId")
+		List<String> findDistinctCmpsType(
+		        @Param("orientationId") Integer orientationId,
+		        @Param("campusId") Integer campusId
+		);
+	 
+	 @Query("SELECT DISTINCT new com.application.dto.OrientationFeeAndDatesDTO(" +
+		       "c.orientationStartDate, c.orientationEndDate, c.orientationFee) " +
+		       "FROM CmpsOrientationBatchFeeView c " +
+		       "WHERE c.orientationId = :orientationId")
+		OrientationFeeAndDatesDTO getOrientationFeeAndDatesDistinct(@Param("orientationId") Integer orientationId);
 }

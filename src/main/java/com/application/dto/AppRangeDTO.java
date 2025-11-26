@@ -1,3 +1,21 @@
+//package com.application.dto;
+//
+//import lombok.AllArgsConstructor;
+//import lombok.Data;
+//import lombok.NoArgsConstructor;
+//
+//@Data
+//@NoArgsConstructor
+//@AllArgsConstructor
+//public class AppRangeDTO {
+//    private Integer appStartNo;
+//    private Integer appEndNo;
+//    private Integer appFrom;
+//    private Integer appBalanceTrkId;
+//    private Integer appCount;
+//}
+
+
 package com.application.dto;
 
 import lombok.AllArgsConstructor;
@@ -12,5 +30,4 @@ public class AppRangeDTO {
     private Integer appEndNo;
     private Integer appFrom;
     private Integer appBalanceTrkId;
-    private Integer appCount;
 }

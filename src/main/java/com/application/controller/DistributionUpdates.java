@@ -1,11 +1,11 @@
 package com.application.controller;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.application.dto.AppSeriesDTO;
 import com.application.dto.DgmToCampusFormDTO;
 import com.application.dto.DistributionRequestDTO;
 import com.application.dto.FormSubmissionDTO;
@@ -86,5 +87,27 @@ public class DistributionUpdates {
              return ResponseEntity.notFound().build();
          }
      }
+     
+     @GetMapping("/get-series")
+     public ResponseEntity<List<AppSeriesDTO>> getSeriesDropdown(
+             @RequestParam int receiverId, 
+             @RequestParam Double amount,
+             @RequestParam boolean isPro) { // Frontend passes true if receiver is PRO
+             
+         return ResponseEntity.ok(applicationService.getActiveSeriesForReceiver(receiverId, amount, isPro));
+     }
+
+     // 2. Get the Distribution ID (Call this when user selects a Series)
+     @GetMapping("/get-distribution-id")
+     public ResponseEntity<Integer> getDistributionId(
+             @RequestParam int receiverId,
+             @RequestParam int start,
+             @RequestParam int end,
+             @RequestParam Double amount,
+             @RequestParam boolean isPro) {
+             
+         return ResponseEntity.ok(applicationService.getDistributionIdBySeries(receiverId, start, end, amount, isPro));
+     }
+ 	
 
 }

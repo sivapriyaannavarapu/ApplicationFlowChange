@@ -18,8 +18,9 @@ public interface ParentDetailsRepository extends JpaRepository<ParentDetails, In
       * Finds a specific parent record for a student based on the relation type ID.
       * Follows the path: studentAcademicDetails -> studentRelation -> studentRelationId
       */
-     Optional<ParentDetails> findByStudentAcademicDetailsAndStudentRelationStudentRelationId(
+  // CORRECT
+     Optional<ParentDetails> findByStudentAcademicDetailsAndStudentRelationRelationId(
          StudentAcademicDetails academicDetails,
-         int studentRelationId
+         int relationId
      );
 }

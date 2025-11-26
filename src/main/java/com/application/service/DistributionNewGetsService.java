@@ -63,50 +63,50 @@ public class DistributionNewGetsService {
 	}
 	
 	//for from,start,range
-	
-	public AppRangeDTO getAppRange(int empId, int academicYearId, float amount) {
-	    
-	    // --- 1. PRIMARY CHECK (Distributed & Tracked) ---
-	    // ... (distDTO retrieval remains the same)
-	    
-	    AppDistributionDTO distDTO = distributionRepository
-	            .findActiveAppRange(empId, academicYearId, amount)
-	            .orElse(null);
-
-	    // UPDATED CALL for AppFromDTO with new field
-	    AppFromDTO fromDTO = balanceTrackRepository
-	            .getAppFromByEmployeeAndAcademicYearAndAmount(empId, academicYearId, amount)
-	            .orElse(null);
-
-	    // If ANY primary data is found, merge and return.
-	    if (distDTO != null || fromDTO != null) {
-	        
-	        Integer appStartNo = distDTO != null ? distDTO.getAppStartNo() : null;
-	        Integer appEndNo = distDTO != null ? distDTO.getAppEndNo() : null;
-	        
-	        Integer appFrom = fromDTO != null ? fromDTO.getAppFrom() : null;
-	        Integer appBalanceTrkId = fromDTO != null ? fromDTO.getAppBalanceTrkId() : null;
-	        
-	        // NEW: Get count from BalanceTrack (fromDTO)
-	        Integer appCount = fromDTO != null ? fromDTO.getAppAvblCnt() : null; 
-
-	        // UPDATED DTO RETURN
-	        return new AppRangeDTO(appStartNo, appEndNo, appFrom, appBalanceTrkId, appCount);
-	    }
-
-	    // --- 2. FALLBACK CHECK (AdminApp/Untracked Block) ---
-	    
-	    // The AdminAppRepository query now handles setting appCount and appBalanceTrkId correctly
-	    Optional<AppRangeDTO> adminAppRange = adminAppRepository
-	                                            .findDefaultAppRangeDto(empId, academicYearId, amount);
-
-	    if (adminAppRange.isPresent()) {
-	        return adminAppRange.get();
-	    }
-	    
-	    // --- 3. FINAL FALLBACK: No Data Found ---
-	    return null; 
-	}
+//	
+//	public AppRangeDTO getAppRange(int empId, int academicYearId, float amount) {
+//	    
+//	    // --- 1. PRIMARY CHECK (Distributed & Tracked) ---
+//	    // ... (distDTO retrieval remains the same)
+//	    
+//	    AppDistributionDTO distDTO = distributionRepository
+//	            .findActiveAppRange(empId, academicYearId, amount)
+//	            .orElse(null);
+//
+//	    // UPDATED CALL for AppFromDTO with new field
+//	    AppFromDTO fromDTO = balanceTrackRepository
+//	            .getAppFromByEmployeeAndAcademicYearAndAmount(empId, academicYearId, amount)
+//	            .orElse(null);
+//
+//	    // If ANY primary data is found, merge and return.
+//	    if (distDTO != null || fromDTO != null) {
+//	        
+//	        Integer appStartNo = distDTO != null ? distDTO.getAppStartNo() : null;
+//	        Integer appEndNo = distDTO != null ? distDTO.getAppEndNo() : null;
+//	        
+//	        Integer appFrom = fromDTO != null ? fromDTO.getAppFrom() : null;
+//	        Integer appBalanceTrkId = fromDTO != null ? fromDTO.getAppBalanceTrkId() : null;
+//	        
+//	        // NEW: Get count from BalanceTrack (fromDTO)
+//	        Integer appCount = fromDTO != null ? fromDTO.getAppAvblCnt() : null; 
+//
+//	        // UPDATED DTO RETURN
+//	        return new AppRangeDTO(appStartNo, appEndNo, appFrom, appBalanceTrkId, appCount);
+//	    }
+//
+//	    // --- 2. FALLBACK CHECK (AdminApp/Untracked Block) ---
+//	    
+//	    // The AdminAppRepository query now handles setting appCount and appBalanceTrkId correctly
+//	    Optional<AppRangeDTO> adminAppRange = adminAppRepository
+//	                                            .findDefaultAppRangeDto(empId, academicYearId, amount);
+//
+//	    if (adminAppRange.isPresent()) {
+//	        return adminAppRange.get();
+//	    }
+//	    
+//	    // --- 3. FINAL FALLBACK: No Data Found ---
+//	    return null; 
+//	}
 	
 	
 	//autopopulate city and district
@@ -275,81 +275,81 @@ public class DistributionNewGetsService {
 //	        return merged;
 //	    }
 	    
-	 @Transactional(readOnly = true)
-	    public RangeResponseDTO getRangesOrSingleWithNextStart(int empId, int academicYearId, float amount) {
-
-	        // 0) Check AdminApp first — if present, empId is considered Admin (top-level)
-	        Optional<AdminApp> adminOpt = adminAppRepository.findDefaultAppRange(empId, academicYearId, amount);
-	        if (adminOpt.isPresent()) {
-	            AdminApp adminApp = adminOpt.get();
-	            int blockStart = adminApp.getApp_from_no();
-	            int blockEnd = adminApp.getApp_to_no();
-
-	            // For admin, lookup BT by createdBy (giver)
-	            AppRangeDTO range = computeAppRangeForBlock(empId, academicYearId, amount,
-	                                                       blockStart, blockEnd,
-	                                                       /*useCreatedBy=*/ true);
-
-	            AppDistributionDTO adminBlock = new AppDistributionDTO(blockStart, blockEnd);
-	            return new RangeResponseDTO(Collections.singletonList(adminBlock), range);
-	        }
-
-	        // 1) Non-admin: check RECEIVED distributions (issued_to_emp_id = empId)
-	        List<AppDistributionDTO> received =
-	                distributionRepository.findByIssuedToEmployeeAndYearAndAmount(empId, academicYearId, amount);
-
-	        // 2) Non-admin: check GIVEN distributions (created_by = empId)
-	        List<AppDistributionDTO> given =
-	                distributionRepository.findByCreatedByAndYearAndAmount(empId, academicYearId, amount);
-
-	        List<AppDistributionDTO> blocks = null;
-	        boolean isGiver = false;
-
-	        if (received != null && !received.isEmpty()) {
-	            blocks = received;
-	            isGiver = false; // receiver context
-	        } else if (given != null && !given.isEmpty()) {
-	            blocks = given;
-	            isGiver = true; // giver context
-	        }
-
-	        if (blocks == null || blocks.isEmpty()) {
-	            // Nothing found for non-admin user
-	            return new RangeResponseDTO(Collections.emptyList(), null);
-	        }
-
-	        // Merge contiguous/overlapping ranges
-	        List<AppDistributionDTO> merged = mergeRanges(blocks);
-
-	        if (merged.size() == 1) {
-	            AppDistributionDTO block = merged.get(0);
-	            AppRangeDTO range = computeAppRangeForBlock(empId, academicYearId, amount,
-	                                                       block.getAppStartNo(), block.getAppEndNo(),
-	                                                       isGiver);
-	            return new RangeResponseDTO(Collections.singletonList(block), range);
-	        } else {
-	            // Multiple blocks -> frontend chooses one and calls the second API
-	            return new RangeResponseDTO(merged, null);
-	        }
-	    }
+//	 @Transactional(readOnly = true)
+//	    public RangeResponseDTO getRangesOrSingleWithNextStart(int empId, int academicYearId, float amount) {
+//
+//	        // 0) Check AdminApp first — if present, empId is considered Admin (top-level)
+//	        Optional<AdminApp> adminOpt = adminAppRepository.findDefaultAppRange(empId, academicYearId, amount);
+//	        if (adminOpt.isPresent()) {
+//	            AdminApp adminApp = adminOpt.get();
+//	            int blockStart = adminApp.getApp_from_no();
+//	            int blockEnd = adminApp.getApp_to_no();
+//
+//	            // For admin, lookup BT by createdBy (giver)
+//	            AppRangeDTO range = computeAppRangeForBlock(empId, academicYearId, amount,
+//	                                                       blockStart, blockEnd,
+//	                                                       /*useCreatedBy=*/ true);
+//
+//	            AppDistributionDTO adminBlock = new AppDistributionDTO(blockStart, blockEnd);
+//	            return new RangeResponseDTO(Collections.singletonList(adminBlock), range);
+//	        }
+//
+//	        // 1) Non-admin: check RECEIVED distributions (issued_to_emp_id = empId)
+//	        List<AppDistributionDTO> received =
+//	                distributionRepository.findByIssuedToEmployeeAndYearAndAmount(empId, academicYearId, amount);
+//
+//	        // 2) Non-admin: check GIVEN distributions (created_by = empId)
+//	        List<AppDistributionDTO> given =
+//	                distributionRepository.findByCreatedByAndYearAndAmount(empId, academicYearId, amount);
+//
+//	        List<AppDistributionDTO> blocks = null;
+//	        boolean isGiver = false;
+//
+//	        if (received != null && !received.isEmpty()) {
+//	            blocks = received;
+//	            isGiver = false; // receiver context
+//	        } else if (given != null && !given.isEmpty()) {
+//	            blocks = given;
+//	            isGiver = true; // giver context
+//	        }
+//
+//	        if (blocks == null || blocks.isEmpty()) {
+//	            // Nothing found for non-admin user
+//	            return new RangeResponseDTO(Collections.emptyList(), null);
+//	        }
+//
+//	        // Merge contiguous/overlapping ranges
+//	        List<AppDistributionDTO> merged = mergeRanges(blocks);
+//
+//	        if (merged.size() == 1) {
+//	            AppDistributionDTO block = merged.get(0);
+//	            AppRangeDTO range = computeAppRangeForBlock(empId, academicYearId, amount,
+//	                                                       block.getAppStartNo(), block.getAppEndNo(),
+//	                                                       isGiver);
+//	            return new RangeResponseDTO(Collections.singletonList(block), range);
+//	        } else {
+//	            // Multiple blocks -> frontend chooses one and calls the second API
+//	            return new RangeResponseDTO(merged, null);
+//	        }
+//	    }
 
 	    /**
 	     * API 2 — After frontend selects a block, compute next start inside that selected block.
 	     * Default behavior assumes receiver context (employee lookup).
 	     */
-	    @Transactional(readOnly = true)
-	    public AppRangeDTO getNextStartForSelectedBlock(int empId, int academicYearId, float amount, int selectedStart, int selectedEnd) {
-	        // Default to receiver lookup. If frontend needs createdBy lookup (admin block), call the overloaded method.
-	        return computeAppRangeForBlock(empId, academicYearId, amount, selectedStart, selectedEnd, /*useCreatedBy=*/ false);
-	    }
-
-	    /**
-	     * Overloaded API 2 — allow explicit createdBy context (useful when frontend selects an admin block and wants BT by createdBy).
-	     */
-	    @Transactional(readOnly = true)
-	    public AppRangeDTO getNextStartForSelectedBlock(int empId, int academicYearId, float amount, int selectedStart, int selectedEnd, boolean useCreatedBy) {
-	        return computeAppRangeForBlock(empId, academicYearId, amount, selectedStart, selectedEnd, useCreatedBy);
-	    }
+//	    @Transactional(readOnly = true)
+//	    public AppRangeDTO getNextStartForSelectedBlock(int empId, int academicYearId, float amount, int selectedStart, int selectedEnd) {
+//	        // Default to receiver lookup. If frontend needs createdBy lookup (admin block), call the overloaded method.
+//	        return computeAppRangeForBlock(empId, academicYearId, amount, selectedStart, selectedEnd, /*useCreatedBy=*/ false);
+//	    }
+//
+//	    /**
+//	     * Overloaded API 2 — allow explicit createdBy context (useful when frontend selects an admin block and wants BT by createdBy).
+//	     */
+//	    @Transactional(readOnly = true)
+//	    public AppRangeDTO getNextStartForSelectedBlock(int empId, int academicYearId, float amount, int selectedStart, int selectedEnd, boolean useCreatedBy) {
+//	        return computeAppRangeForBlock(empId, academicYearId, amount, selectedStart, selectedEnd, useCreatedBy);
+//	    }
 
 	    /* ------------------ helper methods ------------------ */
 
@@ -364,46 +364,46 @@ public class DistributionNewGetsService {
 	     * @param useCreatedBy whether to lookup BalanceTrack by createdBy (giver) or by employee.id (receiver)
 	     * @return AppRangeDTO containing computed next start (appFrom), btId, and appCount (available count within block)
 	     */
-	    private AppRangeDTO computeAppRangeForBlock(int empId, int academicYearId, float amount, int blockStart, int blockEnd, boolean useCreatedBy) {
-
-	        // Default: full block available
-	        Integer appFrom = blockStart;
-	        Integer appCount = blockEnd - blockStart + 1;
-	        Integer btId = null;
-
-	        List<AppFromDTO> btList;
-	        if (useCreatedBy) {
-	            btList = balanceTrackRepository.findLatestByCreatedByAndYearAndAmount(empId, academicYearId, amount);
-	        } else {
-	            btList = balanceTrackRepository.findLatestByEmployeeYearAndAmount(empId, academicYearId, amount);
-	        }
-
-	        if (btList != null && !btList.isEmpty()) {
-	            AppFromDTO bt = btList.get(0);
-	            btId = bt.getAppBalanceTrkId();
-
-	            int btFrom = bt.getAppFrom();
-	            int btAvail = bt.getAppAvblCnt() != null ? bt.getAppAvblCnt() : 0;
-
-	            if (btFrom > blockEnd) {
-	                // no available numbers in this selected block
-	                appFrom = blockStart;
-	                appCount = 0;
-	            } else {
-	                // choose start as the larger of btFrom and blockStart
-	                appFrom = Math.max(btFrom, blockStart);
-	                int possible = blockEnd - appFrom + 1;
-	                appCount = Math.min(btAvail, possible);
-	            }
-	        } else {
-	            // No BalanceTrack found -> appFrom stays at blockStart and appCount is full block size
-	            appFrom = blockStart;
-	            appCount = blockEnd - blockStart + 1;
-	            btId = null;
-	        }
-
-	        return new AppRangeDTO(blockStart, blockEnd, appFrom, btId, appCount);
-	    }
+//	    private AppRangeDTO computeAppRangeForBlock(int empId, int academicYearId, float amount, int blockStart, int blockEnd, boolean useCreatedBy) {
+//
+//	        // Default: full block available
+//	        Integer appFrom = blockStart;
+//	        Integer appCount = blockEnd - blockStart + 1;
+//	        Integer btId = null;
+//
+//	        List<AppFromDTO> btList;
+//	        if (useCreatedBy) {
+//	            btList = balanceTrackRepository.findLatestByCreatedByAndYearAndAmount(empId, academicYearId, amount);
+//	        } else {
+//	            btList = balanceTrackRepository.findLatestByEmployeeYearAndAmount(empId, academicYearId, amount);
+//	        }
+//
+//	        if (btList != null && !btList.isEmpty()) {
+//	            AppFromDTO bt = btList.get(0);
+//	            btId = bt.getAppBalanceTrkId();
+//
+//	            int btFrom = bt.getAppFrom();
+//	            int btAvail = bt.getAppAvblCnt() != null ? bt.getAppAvblCnt() : 0;
+//
+//	            if (btFrom > blockEnd) {
+//	                // no available numbers in this selected block
+//	                appFrom = blockStart;
+//	                appCount = 0;
+//	            } else {
+//	                // choose start as the larger of btFrom and blockStart
+//	                appFrom = Math.max(btFrom, blockStart);
+//	                int possible = blockEnd - appFrom + 1;
+//	                appCount = Math.min(btAvail, possible);
+//	            }
+//	        } else {
+//	            // No BalanceTrack found -> appFrom stays at blockStart and appCount is full block size
+//	            appFrom = blockStart;
+//	            appCount = blockEnd - blockStart + 1;
+//	            btId = null;
+//	        }
+//
+//	        return new AppRangeDTO(blockStart, blockEnd, appFrom, btId, appCount);
+//	    }
 
 	    /**
 	     * Merge contiguous or overlapping ranges.

@@ -1,5 +1,6 @@
 package com.application.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -20,9 +21,14 @@ public class AdminApp {
 	
 	@Id
 	private int admin_app_id;
-	private int app_from_no;
-	private int app_to_no;
-	private int total_app;
+	@Column(name = "app_from_no")
+    private Integer appFromNo;
+
+    @Column(name = "app_to_no")
+    private Integer appToNo;
+
+    @Column(name = "total_app")
+    private Integer totalApp; // 2500
 	private int app_amount;
 	private Integer app_fee;
 	private int is_active;

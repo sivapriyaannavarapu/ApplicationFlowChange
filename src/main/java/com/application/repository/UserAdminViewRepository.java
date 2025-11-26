@@ -14,4 +14,7 @@ public interface UserAdminViewRepository extends JpaRepository<UserAdminView, In
 	
 	@Query("SELECT u FROM UserAdminView u WHERE u.emp_id = :employeeId")
     List<UserAdminView> findByEmpIdUsingQuery(@Param("employeeId") int employeeId);
+	
+	@Query("SELECT u FROM UserAdminView u WHERE u.emp_id = :empId")
+    List<UserAdminView> findRolesByEmpId(@Param("empId") int empId);
 }

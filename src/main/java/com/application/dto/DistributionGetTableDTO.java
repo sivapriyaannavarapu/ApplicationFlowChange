@@ -1,6 +1,8 @@
 package com.application.dto;
  
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,7 +27,7 @@ public class DistributionGetTableDTO {
     private int zone_id;
     private int district_id;
     private int cmps_id;
-    private LocalDate issueDate;
+    private LocalDateTime issueDate;
     private int acdc_year_id;
     private int campaignAreaId;
  

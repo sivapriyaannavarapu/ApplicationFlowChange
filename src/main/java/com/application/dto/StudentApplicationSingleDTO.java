@@ -1,0 +1,174 @@
+package com.application.dto;
+
+import java.util.Date;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+import lombok.Data;
+
+@Data
+public class StudentApplicationSingleDTO {
+
+    // ===========================
+    // 1. ACADEMIC DETAILS
+    // ===========================
+    private Integer studAdmsId;
+    private Long studAdmsNo;
+    private String firstName;
+    private String lastName;
+    private String apaarNo;
+    private Date appSaleDate;
+    private String hallTicketNo;
+    private Integer scoreMarks;
+    
+    // Lookups (ID & Name flattened)
+    private Integer academicYearId;
+    private String academicYearName;
+    
+    private Integer classId;
+    private String className;
+    
+    private Integer branchId;
+    private String branchName; // Campus
+    
+    private Integer proId; // Employee
+    private String proName;
+    
+    private Integer quotaId;
+    private String quotaName;
+    
+    private Integer genderId;
+    private String genderName;
+    
+    private Integer admissionTypeId;
+    private String admissionTypeName;
+    
+    private Integer studentTypeId;
+    private String studentTypeName;
+    
+    private Integer studyTypeId;
+    private String studyTypeName;
+
+    // Previous School
+    private String preSchoolName;
+    private Integer preSchoolStateId;
+    private String preSchoolStateName;
+    private Integer preSchoolDistrictId;
+    private String preSchoolDistrictName;
+
+    // ===========================
+    // 2. PERSONAL DETAILS
+    // ===========================
+    private Long aadharNo;
+    private Date dob;
+    
+    private Integer casteId;
+    private String casteName;
+    
+    private Integer religionId;
+    private String religionName;
+    
+    private Integer bloodGroupId;
+    private String bloodGroupName;
+    
+    private Integer foodTypeId;
+    private String foodTypeName;
+
+    // ===========================
+    // 3. ORIENTATION
+    // ===========================
+    private Integer orientationId;
+    private String orientationName;
+    
+    private Date orientationStartDate;
+    private Date orientationEndDate;
+    private Float orientationFee;
+    // ===========================
+    // 4. PARENT DETAILS
+    // ===========================
+    // Father
+    private String fatherName;
+    private Long fatherMobile;
+    private String fatherEmail;
+    private Integer fatherSectorId;
+    private String fatherSectorName;
+    private Integer fatherOccupationId;
+    private String fatherOccupationName;
+
+    // Mother
+    private String motherName;
+    private Long motherMobile;
+    private String motherEmail;
+    private Integer motherSectorId;
+    private String motherSectorName;
+    private Integer motherOccupationId;
+    private String motherOccupationName;
+
+    // ===========================
+    // 5. ADDRESS DETAILS
+    // ===========================
+    private String doorNo;
+    private String street;
+    private String landmark;
+    private String area;
+    private Integer pincode;
+    
+    private Integer addressStateId;
+    private String addressStateName;
+    
+    private Integer addressDistrictId;
+    private String addressDistrictName;
+    
+    private Integer addressMandalId;
+    private String addressMandalName;
+    
+    private Integer addressCityId;
+    private String addressCityName;
+
+    // ===========================
+    // 6. PAYMENT DETAILS
+    // ===========================
+//    private Float paidAmount;
+//    private Date paymentDate;
+//    private String receiptNo;
+//    private String remarks;
+    
+//    private Integer paymentModeId;
+//    private String paymentModeName;
+//
+//    // Transaction Details (if DD/Cheque)
+//    private String transactionNumber; 
+//    private Date transactionDate;
+//    private String ifscCode;
+//    private Integer bankId;
+//    private String bankName;
+//    private Integer bankBranchId;
+//    private String bankBranchName;
+
+    // ===========================
+    // 7. LISTS (Inner Static Classes)
+    // ===========================
+    private List<SiblingItem> siblings = new ArrayList<>();
+    private List<ConcessionItem> concessions = new ArrayList<>();
+
+    @Data
+    public static class SiblingItem {
+        private String fullName;
+        private String schoolName;
+        private Integer relationId;
+        private String relationName;
+        private Integer classId;
+        private String className;
+    }
+
+    @Data
+    public static class ConcessionItem {
+        private Integer concessionTypeId;
+        private String concessionTypeName;
+        private Float amount;
+        private Integer reasonId;
+        private String reasonName;
+        private String comments;
+    }
+}

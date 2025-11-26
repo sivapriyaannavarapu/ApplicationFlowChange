@@ -12,57 +12,92 @@ import com.application.dto.AppRangeDTO;
 import com.application.entity.AdminApp;
 
 @Repository
-public interface AdminAppRepository extends JpaRepository<AdminApp, Integer>{
-	
-	
-	@Query("SELECT DISTINCT a.app_amount FROM AdminApp a WHERE a.employee.id = :empId AND a.academicYear.id = :academicYearId AND a.is_active = 1")
-	List<Integer> findAmountsByEmpIdAndAcademicYear(
-	    @Param("empId") int empId,
-	    @Param("academicYearId") int academicYearId // NEW PARAMETER
-	);
-	
-	// New method for fallback logic
-//	// In AdminAppRepository.java (Fallback Query)
-	@Query("SELECT new com.application.dto.AppRangeDTO(" +
-		       "a.app_from_no, " +      // appStartNo
-		       "a.app_to_no, " +        // appEndNo
-		       "a.app_from_no, " +      // appFrom
-		       "NULL, " +               // appBalanceTrkId (NULL for creation signal)
-		       "a.total_app) " +        // NEW: appCount (from AdminApp total_app)
-		       "FROM AdminApp a " +
-		       "WHERE a.employee.id = :empId " + 
-		       "AND a.academicYear.id = :academicYearId " +
-		       "AND (a.app_amount = :amount OR a.app_fee = :amount) " +
-		       "AND a.is_active = 1")
-		Optional<AppRangeDTO> findDefaultAppRangeDto(
-		    @Param("empId") int empId,
-		    @Param("academicYearId") int academicYearId,
-		    @Param("amount") float amount
-		);
-	
-	 @Query("""
-		        SELECT a
-		        FROM AdminApp a
-		        WHERE a.employee.id = :empId
-		          AND a.academicYear.id = :academicYearId
-		          AND (a.app_amount = :amount OR a.app_fee = :amount)
-		          AND a.is_active = 1
-		        """)
-		    Optional<AdminApp> findDefaultAppRange(
-		        @Param("empId") int empId,
-		        @Param("academicYearId") int academicYearId,
-		        @Param("amount") float amount
-		    );
-	 
-	 @Query("""
-		        SELECT a FROM AdminApp a 
-		        WHERE :applicationNo BETWEEN a.app_from_no AND a.app_to_no 
-		          AND a.academicYear.acdcYearId = :academicYearId 
-		          AND a.is_active = 1
-		        """)
-		    Optional<AdminApp> findActiveAdminAppByAppNoAndAcademicYear(
-		            @Param("applicationNo") long applicationNo,
-		            @Param("academicYearId") int academicYearId);
-	
+public interface AdminAppRepository extends JpaRepository<AdminApp, Integer> {
 
+    // 1️⃣ Get amounts
+    @Query("""
+        SELECT DISTINCT a.app_amount 
+        FROM AdminApp a 
+        WHERE a.employee.id = :empId 
+          AND a.academicYear.id = :academicYearId 
+          AND a.is_active = 1
+    """)
+    List<Integer> findAmountsByEmpIdAndAcademicYear(
+            @Param("empId") int empId,
+            @Param("academicYearId") int academicYearId
+    );
+
+    // 2️⃣ DTO Range Fetch
+//    @Query("""
+//        SELECT new com.application.dto.AppRangeDTO(
+//            a.appFromNo,
+//            a.appToNo,
+//            a.appFromNo,
+//            NULL,
+//            a.totalApp
+//        )
+//        FROM AdminApp a
+//        WHERE a.employee.id = :empId
+//          AND a.academicYear.id = :academicYearId
+//          AND (a.app_amount = :amount OR a.app_fee = :amount)
+//          AND a.is_active = 1
+//    """)
+//    Optional<AppRangeDTO> findDefaultAppRangeDto(
+//            @Param("empId") int empId,
+//            @Param("academicYearId") int academicYearId,
+//            @Param("amount") float amount
+//    );
+
+    // 3️⃣ Entity fetch for same logic
+    @Query("""
+        SELECT a FROM AdminApp a
+        WHERE a.employee.id = :empId
+          AND a.academicYear.id = :academicYearId
+          AND (a.app_amount = :amount OR a.app_fee = :amount)
+          AND a.is_active = 1
+    """)
+    Optional<AdminApp> findDefaultAppRange(
+            @Param("empId") int empId,
+            @Param("academicYearId") int academicYearId,
+            @Param("amount") float amount
+    );
+
+    // 4️⃣ Validation for application number range
+    @Query("""
+        SELECT a FROM AdminApp a
+        WHERE :applicationNo BETWEEN a.appFromNo AND a.appToNo
+          AND a.academicYear.id = :academicYearId
+          AND a.is_active = 1
+    """)
+    Optional<AdminApp> findActiveAdminAppByAppNoAndAcademicYear(
+            @Param("applicationNo") long applicationNo,
+            @Param("academicYearId") int academicYearId
+    );
+
+    // 5️⃣ SUM total apps
+    @Query("""
+        SELECT COALESCE(SUM(a.totalApp), 0)
+        FROM AdminApp a
+        WHERE a.employee.id = :empId
+          AND a.academicYear.id = :academicYearId
+          AND a.is_active = 1
+    """)
+    Long sumTotalAppByEmployeeAndAcademicYear(
+            @Param("empId") Integer empId,
+            @Param("academicYearId") Integer academicYearId
+    );
+
+    // 6️⃣ Find by emp + year + amount
+    @Query("""
+        SELECT a FROM AdminApp a
+        WHERE a.employee.id = :empId
+          AND a.academicYear.id = :yearId
+          AND (a.app_amount = :amount OR a.app_fee = :amount)
+          AND a.is_active = 1
+    """)
+    Optional<AdminApp> findByEmpAndYearAndAmount(
+            @Param("empId") int empId,
+            @Param("yearId") int yearId,
+            @Param("amount") Float amount
+    );
 }

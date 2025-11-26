@@ -25,6 +25,7 @@ import com.application.dto.ConcessionTypeDTO;
 import com.application.dto.GenericDropdownDTO;
 import com.application.dto.OrientationBatchDetailsDTO;
 import com.application.dto.OrientationDTO;
+import com.application.dto.OrientationFeeAndDatesDTO;
 import com.application.dto.OrientationResponseDTO;
 import com.application.dto.PinCodeLocationDTO;
 import com.application.dto.StudentAdmissionDTO;
@@ -382,6 +383,40 @@ public class StudentAdmissionController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to fetch application details: " + e.getMessage()));
         }
+    }
+    
+    @GetMapping("/by-city/Campuses/{cityId}")
+    public ResponseEntity<List<GenericDropdownDTO>> getCampuses(@PathVariable int cityId) {
+        List<GenericDropdownDTO> result = studentAdmissionService.getCampusesByCityId(cityId);
+        return ResponseEntity.ok(result); // Returns [] if empty
+    }
+    
+ 
+    @GetMapping("/studet-type/{orientationId}/{campusId}")
+    public ResponseEntity<String> getCampusType(
+            @PathVariable Integer orientationId,
+            @PathVariable Integer campusId) {
+ 
+        String cmpsType = studentAdmissionService.getCampusType(orientationId, campusId);
+ 
+        return ResponseEntity.ok(cmpsType != null ? cmpsType : "");
+    }
+    
+ 
+    @GetMapping("/OrientationFeeDetails/{orientationId}")
+    public ResponseEntity<OrientationFeeAndDatesDTO> getDetails(@PathVariable Integer orientationId) {
+ 
+    	OrientationFeeAndDatesDTO dto = studentAdmissionService.getFeeAndDates(orientationId);
+ 
+        return ResponseEntity.ok(dto);
+    }
+    
+    @GetMapping("/{districtId}/{category}")
+    public List<GenericDropdownDTO> getCategoryData(
+            @PathVariable Integer districtId,
+            @PathVariable String category) {
+ 
+        return studentAdmissionService.getByCategoryAndDistrict(districtId, category);
     }
 
 }

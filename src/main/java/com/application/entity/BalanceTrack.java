@@ -54,6 +54,7 @@ public class BalanceTrack {
     private AppIssuedType issuedByType;
     
     private float amount;	
-    private int issued_to_pro_id;
+    @Column(name = "issued_to_pro_id")
+    private Integer issuedToProId;
 }
 

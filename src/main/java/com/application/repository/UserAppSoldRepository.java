@@ -112,44 +112,43 @@ public interface UserAppSoldRepository extends JpaRepository<UserAppSold, Long> 
 			        COALESCE(SUM(uas.totalAppCount), 0),
 			        COALESCE(SUM(uas.sold), 0))
 			    FROM UserAppSold uas
-			    WHERE uas.entityId = 3
-			      AND uas.empId = :dgmId
+			    WHERE uas.empId = :dgmId
 			      AND uas.acdcYearId = :acdcYearId
 			""")
 			Optional<GraphSoldSummaryDTO> getSalesSummaryByDgm(
-			    @Param("dgmId") Integer dgmId,
-			    @Param("acdcYearId") Integer acdcYearId
+			        @Param("dgmId") Integer dgmId,
+			        @Param("acdcYearId") Integer acdcYearId
 			);
 
-			@Query("""
+
+		@Query("""
 			    SELECT NEW com.application.dto.GraphSoldSummaryDTO(
 			        COALESCE(SUM(uas.totalAppCount), 0),
 			        COALESCE(SUM(uas.sold), 0))
 			    FROM UserAppSold uas
-			    WHERE uas.entityId = 2
-			      AND uas.zone.zoneId = :zoneId
+			    WHERE uas.zone.zoneId = :zoneId
 			      AND uas.acdcYearId = :acdcYearId
 			""")
 			Optional<GraphSoldSummaryDTO> getSalesSummaryByZone(
-			    @Param("zoneId") Integer zoneId,
-			    @Param("acdcYearId") Integer acdcYearId
+			        @Param("zoneId") Integer zoneId,
+			        @Param("acdcYearId") Integer acdcYearId
 			);
 
-			@Query("""
+		@Query("""
 			    SELECT NEW com.application.dto.GraphSoldSummaryDTO(
 			        COALESCE(SUM(uas.totalAppCount), 0),
 			        COALESCE(SUM(uas.sold), 0))
 			    FROM UserAppSold uas
-			    WHERE uas.entityId = 4
-			      AND uas.campus.campusId = :campusId
+			    WHERE uas.campus.campusId = :campusId
 			      AND uas.acdcYearId = :acdcYearId
 			""")
 			Optional<GraphSoldSummaryDTO> getSalesSummaryByCampus(
-			    @Param("campusId") Integer campusId,
-			    @Param("acdcYearId") Integer acdcYearId
+			        @Param("campusId") Integer campusId,
+			        @Param("acdcYearId") Integer acdcYearId
 			);
 
-			@Query("""
+
+		@Query("""
 			    SELECT COALESCE(SUM(uas.totalAppCount), 0)
 			    FROM UserAppSold uas
 			    WHERE uas.entityId = 4
@@ -157,33 +156,34 @@ public interface UserAppSoldRepository extends JpaRepository<UserAppSold, Long> 
 			      AND uas.acdcYearId = :acdcYearId
 			""")
 			Optional<Long> getProMetricByZone(
-			    @Param("zoneId") Integer zoneId,
-			    @Param("acdcYearId") Integer acdcYearId
+			        @Param("zoneId") Integer zoneId,
+			        @Param("acdcYearId") Integer acdcYearId
 			);
 
-			@Query("""
+
+		@Query("""
 			    SELECT COALESCE(SUM(uas.totalAppCount), 0)
 			    FROM UserAppSold uas
-			    WHERE uas.entityId = 4
-			      AND uas.campus.campusId = :campusId
+			    WHERE uas.campus.campusId = :campusId
 			      AND uas.acdcYearId = :acdcYearId
 			""")
 			Optional<Long> getProMetricByCampus(
-			    @Param("campusId") Integer campusId,
-			    @Param("acdcYearId") Integer acdcYearId
+			        @Param("campusId") Integer campusId,
+			        @Param("acdcYearId") Integer acdcYearId
 			);
 
-			@Query("""
+
+		@Query("""
 			    SELECT COALESCE(SUM(uas.totalAppCount), 0)
 			    FROM UserAppSold uas
-			    WHERE uas.entityId = 4
-			      AND uas.empId = :dgmId
+			    WHERE uas.empId = :dgmId
 			      AND uas.acdcYearId = :acdcYearId
 			""")
 			Optional<Long> getProMetricByDgm(
-			    @Param("dgmId") Integer dgmId,
-			    @Param("acdcYearId") Integer acdcYearId
+			        @Param("dgmId") Integer dgmId,
+			        @Param("acdcYearId") Integer acdcYearId
 			);
+
 
 			// UserAppSoldRepository.java
 						@Query("SELECT DISTINCT uas.acdcYearId FROM UserAppSold uas WHERE uas.isActive = 1 AND uas.entityId = :entityId")
@@ -227,5 +227,61 @@ public interface UserAppSoldRepository extends JpaRepository<UserAppSold, Long> 
 					 // --- NEW: DGM List query for Zonal Rollup (Years) ---
 					    @Query("SELECT DISTINCT uas.acdcYearId FROM UserAppSold uas WHERE uas.entityId = 3 AND uas.empId IN :dgmEmpIds")
 					    List<Integer> findDistinctYearIdsByDgmList(@Param("dgmEmpIds") List<Integer> dgmEmpIds);
+					    
+					    @Query("SELECT new com.application.dto.GraphSoldSummaryDTO(SUM(u.totalAppCount), SUM(u.sold)) " +
+					    	       "FROM UserAppSold u " +
+					    	       "WHERE u.zone.zoneId = :zoneId AND u.acdcYearId = :yearId AND u.amount = :amount")
+					    	Optional<GraphSoldSummaryDTO> getSalesSummaryByZoneAndAmount(
+					    	        @Param("zoneId") Integer zoneId, 
+					    	        @Param("yearId") Integer yearId,
+					    	        @Param("amount") Float amount
+					    	);
+
+					    	/**
+					    	 * Custom query to find all distinct academic year IDs that have data 
+					    	 * for a specific zone and amount.
+					    	 */
+					    	@Query("SELECT DISTINCT u.acdcYearId FROM UserAppSold u WHERE u.zone.zoneId = :zoneId AND u.amount = :amount")
+					    	List<Integer> findDistinctYearIdsByZoneAndAmount(
+					    	        @Param("zoneId") Integer zoneId, 
+					    	        @Param("amount") Float amount
+					    	);
+					    	
+					    	@Query("SELECT new com.application.dto.GraphSoldSummaryDTO(SUM(u.totalAppCount), SUM(u.sold)) " +
+					    		       "FROM UserAppSold u " +
+					    		       "WHERE u.campus.id = :campusId AND u.acdcYearId = :yearId AND u.amount = :amount")
+					    		Optional<GraphSoldSummaryDTO> getSalesSummaryByCampusAndAmount(
+					    		    @Param("campusId") Integer campusId, 
+					    		    @Param("yearId") Integer yearId,
+					    		    @Param("amount") Float amount
+					    		);
+
+					    		/**
+					    		 * Custom query to find all distinct academic year IDs that have data 
+					    		 * for a specific campus and amount.
+					    		 * FIX: Explicitly reference the Campus ID field (u.campus.id) to prevent type mismatch.
+					    		 */
+					    		@Query("SELECT DISTINCT u.acdcYearId FROM UserAppSold u WHERE u.campus.id = :campusId AND u.amount = :amount")
+					    		List<Integer> findDistinctYearIdsByCampusAndAmount(
+					    		    @Param("campusId") Integer campusId, 
+					    		    @Param("amount") Float amount
+					    		);
+					    		
+					    		@Query("""
+					    			    SELECT
+					    			        a.acdcYearId,
+					    			        COALESCE(SUM(a.totalAppCount), 0),
+					    			        COALESCE(SUM(a.sold), 0)
+					    			    FROM UserAppSold a
+					    			    WHERE a.isActive = 1
+					    			      AND a.empId = :empId
+					    			      AND a.acdcYearId IN :yearIds
+					    			    GROUP BY a.acdcYearId
+					    			    ORDER BY a.acdcYearId
+					    			""")
+					    			List<Object[]> getYearWiseIssuedAndSoldByEmployee(
+					    			    @Param("empId") Integer empId,
+					    			    @Param("yearIds") List<Integer> yearIds
+					    			);
 			 
 }

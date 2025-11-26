@@ -205,6 +205,44 @@ public class ApplicationAnalyticsService {
         );
         return analytics;
     }
+    
+public GraphDTO getGraphDataByZoneIdAndAmount(Integer zoneId, Float amount) {
+        
+        if (zoneId == null || amount == null) {
+            GraphDTO emptyGraph = new GraphDTO();
+            emptyGraph.setTitle("Error: Zone ID and Amount must be provided.");
+            emptyGraph.setYearlyData(new ArrayList<>());
+            return emptyGraph;
+        }
+        
+        // This leverages the generic getGraphData helper with new repository functions
+        return getGraphData(
+            // Data Fetcher: Function<Integer, Optional<GraphSoldSummaryDTO>> (takes yearId)
+            (yearId) -> userAppSoldRepository.getSalesSummaryByZoneAndAmount(zoneId, yearId, amount),
+            
+            // Year Fetcher: Supplier<List<Integer>> (takes no arguments)
+            () -> userAppSoldRepository.findDistinctYearIdsByZoneAndAmount(zoneId, amount)
+        );
+    }
+
+public GraphDTO getGraphDataByCampusIdAndAmount(Integer campusId, Float amount) {
+    
+    if (campusId == null || amount == null) {
+        GraphDTO emptyGraph = new GraphDTO();
+        emptyGraph.setTitle("Error: Campus ID and Amount must be provided.");
+        emptyGraph.setYearlyData(new ArrayList<>());
+        return emptyGraph;
+    }
+
+    // This leverages the generic getGraphData helper with new repository functions
+    return getGraphData(
+        // Data Fetcher: Function<Integer, Optional<GraphSoldSummaryDTO>> (takes yearId)
+        (yearId) -> userAppSoldRepository.getSalesSummaryByCampusAndAmount(campusId, yearId, amount),
+        
+        // Year Fetcher: Supplier<List<Integer>> (takes no arguments)
+        () -> userAppSoldRepository.findDistinctYearIdsByCampusAndAmount(campusId, amount)
+    );
+}
  
     // --- ROLLUP LOGIC (Now private helpers) ---
     
@@ -366,72 +404,57 @@ public class ApplicationAnalyticsService {
             Function<Integer, Optional<MetricsAggregateDTO>> dataFetcher,
             Function<Integer, Optional<Long>> proFetcher,
             Supplier<List<Integer>> yearFetcher) {
- 
+
         MetricsDataDTO dto = new MetricsDataDTO();
- 
+
         try {
- 
+
             List<Integer> yearIds = yearFetcher.get();
- 
+
             if (yearIds.isEmpty()) {
                 dto.setMetrics(new ArrayList<>());
                 return dto;
             }
- 
+
+            // Sort yearIds ascending → last one is current year
             yearIds.sort(Integer::compare);
- 
+
             int currentYearId = yearIds.get(yearIds.size() - 1);
             int previousYearId = (yearIds.size() > 1)
                     ? yearIds.get(yearIds.size() - 2)
                     : currentYearId;
- 
+
             AcademicYear cy = academicYearRepository.findById(currentYearId).orElse(null);
             AcademicYear py = academicYearRepository.findById(previousYearId).orElse(null);
- 
+
             dto.setCurrentYear(cy != null ? cy.getYear() : 0);
             dto.setPreviousYear(py != null ? py.getYear() : 0);
- 
+
             MetricsAggregateDTO curr = dataFetcher.apply(currentYearId)
                     .orElse(new MetricsAggregateDTO());
             MetricsAggregateDTO prev = dataFetcher.apply(previousYearId)
                     .orElse(new MetricsAggregateDTO());
- 
+
             long proCurr = proFetcher.apply(currentYearId).orElse(0L);
             long proPrev = proFetcher.apply(previousYearId).orElse(0L);
- 
-            MetricsAggregateDTO totalMetrics = new MetricsAggregateDTO();
-            long totalPro = 0L;
- 
-            for (Integer yid : yearIds) {
-                MetricsAggregateDTO yr = dataFetcher.apply(yid)
-                        .orElse(new MetricsAggregateDTO());
-                
-                totalMetrics = new MetricsAggregateDTO(
-                        totalMetrics.totalApp() + yr.totalApp(),
-                        totalMetrics.appSold() + yr.appSold(),
-                        totalMetrics.appConfirmed() + yr.appConfirmed(),
-                        totalMetrics.appAvailable() + yr.appAvailable(),
-                        totalMetrics.appUnavailable() + yr.appUnavailable(),
-                        totalMetrics.appDamaged() + yr.appDamaged(),
-                        totalMetrics.appIssued() + yr.appIssued()
-                );
-                
-                totalPro += proFetcher.apply(yid).orElse(0L);
-            }
- 
+
+            MetricsAggregateDTO totalMetrics = curr;   // instead of summing every year
+            long totalPro = proCurr;
+            // ------------------------------------------------------
+
             List<MetricDTO> cards = buildMetricsList(curr, prev, totalMetrics, proCurr, proPrev, totalPro);
- 
+
             dto.setMetrics(cards);
- 
+
         } catch (Exception ex) {
             System.out.println("🔥 METRICS ERROR: " + ex.getMessage());
             ex.printStackTrace();
             dto.setMetrics(new ArrayList<>());
         }
- 
+
         return dto;
     }
- 
+
     /**
      * Builds the metrics list.
      */
@@ -502,8 +525,9 @@ public class ApplicationAnalyticsService {
     }
  
     private double calculatePercentageChange(double current, double previous) {
-        if (previous == 0) return (current > 0) ? 100.0 : 0.0;
-        return ((current - previous) / previous) * 100.0;
+        if (previous == 0) return (current > 0) ? 100 : 0;
+        double change = ((current - previous) / previous) * 100;
+        return Math.round(change);
     }
     
     private String getChangeDirection(double change) {

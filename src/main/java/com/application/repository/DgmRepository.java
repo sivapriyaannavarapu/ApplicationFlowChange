@@ -58,5 +58,8 @@ public interface DgmRepository extends JpaRepository<Dgm, Integer> {
 
 	    @Query("SELECT d FROM Dgm d WHERE d.employee.emp_id = :empId AND d.isActive = :isActive")
 	    Optional<Dgm> findActiveDgm(@Param("empId") int empId, @Param("isActive") int isActive);
+	    
+	    @Query("SELECT d.zone.zoneId FROM Dgm d WHERE d.employee.emp_id = :empId")
+	    Optional<Integer> findZoneIdByEmpId(@Param("empId") int empId);
 
 }

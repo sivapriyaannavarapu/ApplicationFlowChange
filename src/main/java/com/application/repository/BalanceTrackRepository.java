@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.application.dto.AppFromDTO;
+import com.application.dto.AppSeriesDTO;
 import com.application.entity.AcademicYear;
 import com.application.entity.BalanceTrack;
 
@@ -143,5 +144,78 @@ public interface BalanceTrackRepository extends JpaRepository<BalanceTrack, Inte
     		        @Param("blockStart") int blockStart,
     		        @Param("blockEnd") int blockEnd
     		);
+     
+     @Query("""
+ 		    SELECT COALESCE(SUM(b.appAvblCnt), 0)
+ 		    FROM BalanceTrack b
+ 		    WHERE b.employee.id = :empId
+ 		      AND b.academicYear.acdcYearId = :academicYearId
+ 		      AND b.isActive = 1
+ 		""")
+ 	Long sumAppAvblCntByEmployeeAndAcademicYear(
+ 	    @Param("empId") Integer empId,
+ 	    @Param("academicYearId") Integer academicYearId
+ 	);
+  
+     @Query("SELECT b FROM BalanceTrack b WHERE " +
+	           "b.academicYear.acdcYearId = :yearId " +
+	           "AND b.employee.emp_id = :empId " +
+	           "AND b.isActive = 1 " +
+	           "AND b.amount = :amount " +
+	           "ORDER BY b.appFrom ASC")
+	    List<BalanceTrack> findActiveBalancesByEmpAndAmount(
+	            @Param("yearId") int yearId, 
+	            @Param("empId") int empId, 
+	            @Param("amount") Float amount
+	    );
+     
+     @Query("SELECT b FROM BalanceTrack b WHERE " + "b.academicYear.acdcYearId = :yearId "
+ 			+ "AND b.employee.emp_id = :empId " + "AND b.amount = :amount " + "AND b.isActive = 1 "
+ 			+ "AND b.appTo = :targetEnd")
+ 	Optional<BalanceTrack> findMergeableRowForEmployee(@Param("yearId") int yearId, @Param("empId") int empId,
+ 			@Param("amount") Float amount, @Param("targetEnd") int targetEnd);
+//     
+//     @Query("SELECT new com.application.dto.AppFromDTO(b.appFrom, b.appBalanceTrkId) FROM BalanceTrack b WHERE b.employee.id = :employeeId AND b.academicYear.id = :academicYearId AND b.isActive = 1")
+// 	Optional<AppFromDTO> getAppFromByEmployeeAndAcademicYear(@Param("employeeId") int employeeId,
+// 			@Param("academicYearId") int academicYearId);
+     
+     @Query("SELECT new com.application.dto.AppSeriesDTO(concat(b.appFrom, ' - ', b.appTo), b.appFrom, b.appTo) " +
+	           "FROM BalanceTrack b WHERE " +
+	           "b.employee.emp_id = :empId " +
+	           "AND b.amount = :amount " +
+	           "AND b.isActive = 1 " +
+	           "ORDER BY b.appFrom ASC")
+	    List<AppSeriesDTO> findSeriesByEmpIdAndAmount(
+	            @Param("empId") int empId, 
+	            @Param("amount") Double amount
+	    );
+	
+	@Query("SELECT new com.application.dto.AppSeriesDTO(concat(b.appFrom, ' - ', b.appTo), b.appFrom, b.appTo) " +
+	           "FROM BalanceTrack b WHERE " +
+	           "b.issuedToProId = :proId " +
+	           "AND b.amount = :amount " +
+	           "AND b.isActive = 1 " +
+	           "ORDER BY b.appFrom ASC")
+	    List<AppSeriesDTO> findSeriesByProIdAndAmount(
+	            @Param("proId") int proId, 
+	            @Param("amount") Double amount
+	    );
+	    
+	
+	@Query("SELECT b FROM BalanceTrack b WHERE " + "b.academicYear.acdcYearId = :yearId "
+			+ "AND b.issuedToProId = :proId " + "AND b.isActive = 1 " + "AND b.amount = :amount")
+	Optional<BalanceTrack> findActiveBalanceByProAndAmount(@Param("yearId") int yearId, @Param("proId") int proId,
+			@Param("amount") Float amount);
+	
+	@Query("SELECT b FROM BalanceTrack b WHERE b.academicYear.acdcYearId = :yearId AND b.issuedToProId = :proId AND b.isActive = 1 AND b.amount = :amount ORDER BY b.appFrom ASC")
+	List<BalanceTrack> findActiveBalancesByProAndAmount(@Param("yearId") int yearId, @Param("proId") int proId, @Param("amount") Float amount);
+	
+	@Query("SELECT b FROM BalanceTrack b WHERE " + "b.academicYear.acdcYearId = :yearId "
+			+ "AND b.issuedToProId = :proId " + "AND b.amount = :amount " + "AND b.isActive = 1 "
+			+ "AND b.appTo = :targetEnd")
+	Optional<BalanceTrack> findMergeableRowForPro(@Param("yearId") int yearId, @Param("proId") int proId,
+			@Param("amount") Float amount, @Param("targetEnd") int targetEnd);
+	
+
 
 }

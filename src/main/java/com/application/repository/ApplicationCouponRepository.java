@@ -12,6 +12,4 @@ import com.application.entity.ApplicationCoupon;
 @Repository
 public interface ApplicationCouponRepository extends JpaRepository<ApplicationCoupon, Integer> {
 	
-	@Query("SELECT ac FROM ApplicationCoupon ac WHERE ac.coupon_code = :couponCode")
-    Optional<ApplicationCoupon> findByCouponCode(@Param("couponCode") String couponCode);
 }

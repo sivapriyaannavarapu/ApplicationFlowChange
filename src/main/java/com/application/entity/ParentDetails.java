@@ -34,8 +34,12 @@ public class ParentDetails {
 //	private int is_active;
 	
 	@ManyToOne
-	@JoinColumn(name = "student_relation_id")
+	@JoinColumn(name = "student_relation_id" , referencedColumnName = "relation_id")
 	private StudentRelation studentRelation;	
+	
+	@ManyToOne
+	@JoinColumn(name = "occupation_sector_id")
+	private Sector sector;
 	
 	@ManyToOne
     @JoinColumn(name = "stud_adms_id") // This links to the student's ID

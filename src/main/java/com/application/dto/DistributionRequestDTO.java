@@ -9,7 +9,7 @@ public class DistributionRequestDTO {
     private int stateId;
     private int cityId;
     private int zoneId;
-    
+    private Float Application_Amount;
     
     private int issuedByTypeId;
     private int issuedToTypeId;

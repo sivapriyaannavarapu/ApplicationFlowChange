@@ -20,11 +20,11 @@ public class StudentRelation {
 	
 	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "student_relation_id") 
-    private int studentRelationId;
+    @Column(name = "relation_id") 
+    private int relationId;
     
-    @Column(name = "student_relation_type") 
-    private String studentRelationType;
+    @Column(name = "relation_type") 
+    private String relationType;
     
     @Column(name = "is_active") 
     private int isActive;

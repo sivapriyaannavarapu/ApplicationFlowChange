@@ -54,6 +54,6 @@ public class StudentApplicationTransaction {
     
     @ManyToOne
 	@JoinColumn(name = "stud_payment_detls_id")
-	private PaymentDetails paymnetDetails;
+	private PaymentDetails paymentDetails;
 }
  

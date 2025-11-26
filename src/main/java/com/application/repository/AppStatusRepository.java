@@ -18,4 +18,7 @@ public interface AppStatusRepository extends JpaRepository<AppStatus, Integer> {
     @Query("SELECT a FROM AppStatus a WHERE a.app_no = :appNo AND a.is_active = 1")
     Optional<AppStatus> findByApplicationNumber(@Param("appNo") int appNo);
 
+    @Query("SELECT a FROM AppStatus a WHERE a.app_no = :appNo AND a.is_active = 1")
+    Optional<AppStatus> findByApp_no(@Param("appNo") int appNo);
+ 
 }

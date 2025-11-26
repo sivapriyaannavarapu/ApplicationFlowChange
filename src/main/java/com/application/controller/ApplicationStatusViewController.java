@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.application.dto.AppStatusDTO;
@@ -46,6 +47,14 @@ public class ApplicationStatusViewController {
     @GetMapping("/all_status_list")//used/c
     public ResponseEntity<List<AppStatusDTO>> getAllStatus() {
         return ResponseEntity.ok(applicationStatusViewService.getAllStatus());
+    }
+    
+    @GetMapping("/basedOnCategory/application-status_list")
+    public List<AppStatusDTO> getApplicationStatus(
+            @RequestParam String category,
+            @RequestParam(required = false) Integer zoneId) {
+ 
+        return applicationStatusViewService.fetchApplicationStatus(category, zoneId);
     }
 
 }

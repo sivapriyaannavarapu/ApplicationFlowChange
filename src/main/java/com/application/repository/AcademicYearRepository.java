@@ -11,10 +11,7 @@ import com.application.entity.AcademicYear;
 @Repository
 public interface AcademicYearRepository extends JpaRepository<AcademicYear, Integer>{
 	
-	 Optional<AcademicYear> findByAcademicYear(String academicYear);
 	 List<AcademicYear> findByAcdcYearIdIn(List<Integer> acdcYearIds);
-	 List<AcademicYear> findByYearIn(List<Integer> years);
-	 
 	 Optional<AcademicYear> findByYear(Integer year);
 	 
 	 

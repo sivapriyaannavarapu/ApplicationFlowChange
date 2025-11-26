@@ -20,6 +20,9 @@ public class CampusProView {
 	private int cmps_emp_id;
 	private int is_active;
 	
+	 @Column(name = "zone_id")
+	 private Integer zoneId;
+	
 	@Column(name = "is_our_emp")
 	private Integer isOurEmp;
 	

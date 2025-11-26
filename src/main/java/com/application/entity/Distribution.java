@@ -1,7 +1,7 @@
 package com.application.entity;
  
-import java.time.LocalDate;
- 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -41,8 +41,8 @@ public class Distribution {
     private int isActive;
  
     private int created_by; // logged employee id
-    private int issued_to_emp_id;
-    private int issued_to_pro_id;
+    private Integer issued_to_emp_id;
+    private Integer issued_to_pro_id;
  
  
     @ManyToOne
@@ -82,7 +82,7 @@ public class Distribution {
     private Campus campus;
     
     @Column(name = "created_date")
-    private LocalDate issueDate;
+    private LocalDateTime issueDate;
     
     @ManyToOne
     @JoinColumn(name = "acdc_year_id")

@@ -57,34 +57,34 @@ public class DistributionNewGetsController {
     }
     
     
-    @GetMapping("/{empId}/{academicYearId}")
-    public ResponseEntity<RangeResponseDTO> getRanges(
-            @PathVariable int empId,
-            @PathVariable int academicYearId,
-            @RequestParam("amount") float amount
-    ) {
-        RangeResponseDTO resp = distributionNewGetsService.getRangesOrSingleWithNextStart(empId, academicYearId, amount);
-        if ((resp.getMergedRanges() == null || resp.getMergedRanges().isEmpty()) && resp.getSelectedRange() == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(resp);
-    }
+//    @GetMapping("/{empId}/{academicYearId}")
+//    public ResponseEntity<RangeResponseDTO> getRanges(
+//            @PathVariable int empId,
+//            @PathVariable int academicYearId,
+//            @RequestParam("amount") float amount
+//    ) {
+//        RangeResponseDTO resp = distributionNewGetsService.getRangesOrSingleWithNextStart(empId, academicYearId, amount);
+//        if ((resp.getMergedRanges() == null || resp.getMergedRanges().isEmpty()) && resp.getSelectedRange() == null) {
+//            return ResponseEntity.notFound().build();
+//        }
+//        return ResponseEntity.ok(resp);
+//    }
 
     /**
      * 2) After frontend selects a specific merged block, call this to get the next start inside selected block.
      */
-    @GetMapping("/{empId}/{academicYearId}/next")
-    public ResponseEntity<AppRangeDTO> getNextForSelectedBlock(
-            @PathVariable int empId,
-            @PathVariable int academicYearId,
-            @RequestParam("amount") float amount,
-            @RequestParam("start") int selectedStart,
-            @RequestParam("end") int selectedEnd
-    ) {
-        AppRangeDTO dto = distributionNewGetsService.getNextStartForSelectedBlock(empId, academicYearId, amount, selectedStart, selectedEnd);
-        if (dto == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(dto);
-    }
+//    @GetMapping("/{empId}/{academicYearId}/next")
+//    public ResponseEntity<AppRangeDTO> getNextForSelectedBlock(
+//            @PathVariable int empId,
+//            @PathVariable int academicYearId,
+//            @RequestParam("amount") float amount,
+//            @RequestParam("start") int selectedStart,
+//            @RequestParam("end") int selectedEnd
+//    ) {
+//        AppRangeDTO dto = distributionNewGetsService.getNextStartForSelectedBlock(empId, academicYearId, amount, selectedStart, selectedEnd);
+//        if (dto == null) {
+//            return ResponseEntity.notFound().build();
+//        }
+//        return ResponseEntity.ok(dto);
+//    }
 }

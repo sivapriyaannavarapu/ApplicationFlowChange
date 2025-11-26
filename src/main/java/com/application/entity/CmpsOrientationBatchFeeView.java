@@ -24,6 +24,8 @@ public class CmpsOrientationBatchFeeView {
     private String sectionName;
     @Column(name = "cmps_id")
     private Integer cmpsId;
+    @Column(name = "cmps_type")
+    private String cmpsType;
  
     @Column(name = "cmps_name")
     private String cmpsName;

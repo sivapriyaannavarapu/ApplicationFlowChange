@@ -29,6 +29,7 @@ public class UserAppSold {
     private Long rangeEndNo;
     private Integer totalAppCount;
     private Integer sold;
+    private Float amount;
 
 
     @ManyToOne

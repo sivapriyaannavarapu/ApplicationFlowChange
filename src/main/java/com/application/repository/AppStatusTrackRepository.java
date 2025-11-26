@@ -13,7 +13,6 @@ import com.application.dto.MetricsAggregateDTO;
 import com.application.entity.AppStatusTrack;
 
 @Repository
-
 public interface AppStatusTrackRepository extends JpaRepository<AppStatusTrack, Integer> {
 
 	@Query("SELECT new com.application.dto.AppStatusTrackDTO(" +
@@ -183,5 +182,18 @@ public interface AppStatusTrackRepository extends JpaRepository<AppStatusTrack, 
 		 // --- NEW: Employee List query for Zonal Rollup (Years) ---
 		    @Query("SELECT DISTINCT ast.academicYear.acdcYearId FROM AppStatusTrack ast WHERE ast.employee.id IN :empIds")
 		    List<Integer> findDistinctYearIdsByEmployeeList(@Param("empIds") List<Integer> empIds);
+		    
+		   @Query("""
+				    SELECT COALESCE(SUM(a.appAvailable), 0)
+				    FROM AppStatusTrack a
+				    WHERE a.isActive = 1
+				      AND a.issuedByType.appIssuedId = 4
+				      AND a.employee.id = :empId
+				      AND a.academicYear.acdcYearId = :academicYearId
+				""")
+				Long getWithProAvailableByEmployeeAndYear(
+				    @Param("empId") Integer empId,
+				    @Param("academicYearId") Integer academicYearId
+				);
 		 
 		}
