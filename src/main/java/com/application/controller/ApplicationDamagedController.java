@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.application.dto.AppStatusDetailsDTO;
 import com.application.dto.AppStatusResponseDTO;
 import com.application.dto.ApplicationDamagedDto;
+import com.application.dto.Appstatusdtodamaged;
 import com.application.dto.CampusDto;
 import com.application.dto.EmployeeDto;
 import com.application.dto.GenericDropdownDTO;
@@ -126,14 +127,17 @@ public ResponseEntity<List<GenericDropdownDTO>> getActiveCampusesForDropdown() {
  
     @GetMapping("/{applicationNo}")//need
     public ResponseEntity<?> getApplicationDetails(@PathVariable Integer applicationNo) {
-        Optional<AppStatusTrackView> details = applicationDamagedService.getDetailsByApplicationNo(applicationNo);
-        if (details.isPresent()) {
-            return new ResponseEntity<>(details.get(), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>("Application not found with number: " + applicationNo, HttpStatus.NOT_FOUND);
+
+        Appstatusdtodamaged dto =
+                applicationDamagedService.getDetailsByApplicationNo(applicationNo);
+
+        if (dto == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Application not found with number: " + applicationNo);
         }
-    }
-    
+
+        return ResponseEntity.ok(dto);
+    }    
     @GetMapping("/details/{appNo}")
     public ResponseEntity<AppStatusDetailsDTO> getAppDetails(
             @PathVariable int appNo) {

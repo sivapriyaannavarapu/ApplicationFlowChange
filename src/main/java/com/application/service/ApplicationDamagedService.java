@@ -15,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.application.dto.AppStatusDetailsDTO;
 import com.application.dto.AppStatusResponseDTO;
+import com.application.dto.AppStatusTrackDTO;
 import com.application.dto.ApplicationDamagedDto;
+import com.application.dto.Appstatusdtodamaged;
 import com.application.dto.CampusDto;
 import com.application.dto.EmployeeDto;
 import com.application.dto.GenericDropdownDTO;
@@ -65,8 +67,38 @@ public class ApplicationDamagedService {
     // ---------------------- READ METHODS (CACHEABLE) ----------------------
 
     @Cacheable(value = "appStatusTrackView", key = "#num")
-    public Optional<AppStatusTrackView> getDetailsByApplicationNo(int num) {
-        return appStatusTrackViewRepository.findById(num);
+    public AppStatusTrackView getEntityByApplicationNo(int num) {
+        return appStatusTrackViewRepository.findById(num).orElse(null);
+    }
+
+    // Return DTO to Controller
+    public Appstatusdtodamaged getDetailsByApplicationNo(int num) {
+
+        AppStatusTrackView view = getEntityByApplicationNo(num);
+
+        if (view == null) {
+            return null;
+        }
+
+        return mapToDTO(view);
+    }
+
+    private Appstatusdtodamaged mapToDTO(AppStatusTrackView view) {
+    	Appstatusdtodamaged dto = new Appstatusdtodamaged();
+
+        dto.setApplicationNo(view.getNum());
+        dto.setProEmpId(view.getPro_emp_id());
+        dto.setProName(view.getPro_name());
+        dto.setDgmEmpId(view.getDgm_emp_id());
+        dto.setDgmName(view.getDgm_name());
+        dto.setZoneId(view.getZone_id());
+        dto.setZoneName(view.getZone_name());
+        dto.setCampusId(view.getCmps_id());
+        dto.setCampusName(view.getCmps_name());
+        dto.setStatus(view.getStatus());
+        dto.setStatusDate(view.getDate());
+
+        return dto;
     }
 
     @Cacheable(value = "zoneEmployees")
