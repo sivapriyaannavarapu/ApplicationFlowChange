@@ -61,7 +61,7 @@ public class ApplicationDamagedController {
         return ResponseEntity.ok(campuses);
     }
  
-    @GetMapping("/zones")//used/c
+    @GetMapping("/zones")//need/c
     public ResponseEntity<List<GenericDropdownDTO>> getAllZones() {
         List<GenericDropdownDTO> zone = applicationDamagedService.getAllZones();
         return new ResponseEntity<>(zone, HttpStatus.OK);
@@ -106,7 +106,7 @@ public ResponseEntity<List<GenericDropdownDTO>> getActiveCampusesForDropdown() {
         return ResponseEntity.ok(campuses);
     }
  
-    @PostMapping("/status")
+    @PostMapping("/status")//need
     public ResponseEntity<?> createApplicationStatus(@RequestBody ApplicationDamagedDto requestDTO) {
         try {
             AppStatusResponseDTO response = applicationDamagedService.saveOrUpdateApplicationStatus(requestDTO);
@@ -118,13 +118,13 @@ public ResponseEntity<List<GenericDropdownDTO>> getActiveCampusesForDropdown() {
     }
  
  
-    @GetMapping("/statuses")
+    @GetMapping("/statuses")//need
     public ResponseEntity<List<ApplicationStatus>> getAllStatuses() {
         List<ApplicationStatus> statuses = applicationDamagedService.getAllStatus();
         return new ResponseEntity<>(statuses, HttpStatus.OK);
     }
  
-    @GetMapping("/{applicationNo}")
+    @GetMapping("/{applicationNo}")//need
     public ResponseEntity<?> getApplicationDetails(@PathVariable Integer applicationNo) {
         Optional<AppStatusTrackView> details = applicationDamagedService.getDetailsByApplicationNo(applicationNo);
         if (details.isPresent()) {

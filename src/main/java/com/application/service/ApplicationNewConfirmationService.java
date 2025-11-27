@@ -21,7 +21,7 @@ import com.application.dto.BatchDTO;
 import com.application.dto.CampusDropdownDTO;
 // --- Import all your DTOs ---
 import com.application.dto.ConcessionConfirmationDTO;
-import com.application.dto.GenericDropdownDTO;
+import com.application.dto.LanguageDTO;
 import com.application.dto.OccupationSectorDropdownDTO;
 import com.application.dto.OrientationBatchDetailsDTO;
 import com.application.dto.OrientationDropdownDTO;
@@ -32,7 +32,6 @@ import com.application.dto.SiblingDTO;
 import com.application.dto.StudentConfirmationDTO;
 import com.application.entity.AcademicYear;
 import com.application.entity.BloodGroup;
-import com.application.entity.City;
 import com.application.entity.CmpsOrientationBatchFeeView;
 import com.application.entity.ConcessionReason;
 import com.application.entity.District;
@@ -58,6 +57,7 @@ import com.application.repository.AcademicYearRepository;
 import com.application.repository.BloodGroupRepository;
 import com.application.repository.CampusRepository;
 import com.application.repository.CampusSchoolTypeRepository;
+import com.application.repository.CasteRepository;
 import com.application.repository.CityRepository;
 import com.application.repository.CmpsOrientationBatchFeeViewRepository;
 import com.application.repository.ConcessionReasonRepository;
@@ -73,6 +73,8 @@ import com.application.repository.ParentDetailsRepository;
 import com.application.repository.ParentOccupationViewRepository;
 import com.application.repository.PaymentDetailsRepository;
 import com.application.repository.PaymentModeRepository;
+import com.application.repository.ReligionRepository;
+import com.application.repository.SectorRepository;
 import com.application.repository.SiblingRepository;
 import com.application.repository.StateRepository;
 import com.application.repository.StatusRepository;
@@ -132,6 +134,9 @@ public class ApplicationNewConfirmationService {
     @Autowired private OrgBankBranchRepository orgBankBranchRepo;
     @Autowired private CityRepository cityRepo;
     @Autowired private StudentApplicationTransactionRepository studentApplicationTransactionRepo;
+    @Autowired private CasteRepository casteRepository;
+    @Autowired private ReligionRepository religionRepository;
+    @Autowired private SectorRepository sectorRepository;
  
     
     
@@ -307,6 +312,13 @@ public class ApplicationNewConfirmationService {
             schoolTypeRepo.findById(dto.getSchoolTypeId()).ifPresent(student::setPreCampusSchoolType);
         }
         
+        if (dto.getLanguages() != null && !dto.getLanguages().isEmpty()) {
+
+            int[] languageIds = dto.getLanguages().stream().mapToInt(LanguageDTO::getLangId).toArray();
+
+            student.setLang_id(languageIds);
+
+        }
         academicRepo.save(student);
  
         // --- 3. Update Personal Details ---
@@ -319,6 +331,12 @@ public class ApplicationNewConfirmationService {
         }
         if (dto.getBloodGroupId() != null) {
             bloodGroupRepo.findById(dto.getBloodGroupId()).ifPresent(personalDetails::setBloodGroup);
+        }
+        if(dto.getCasteId() !=null) {
+        	casteRepository.findById(dto.getCasteId()).ifPresent(personalDetails::setCaste);
+        }
+        if(dto.getReligionId() !=null) {
+        	religionRepository.findById(dto.getReligionId()).ifPresent(personalDetails::setReligion);
         }
         personalRepo.save(personalDetails);
  
@@ -378,7 +396,17 @@ public class ApplicationNewConfirmationService {
                 parent.setName(parentDto.getName());
                 parent.setMobileNo(parentDto.getMobileNo());
                 parent.setEmail(parentDto.getEmail());
-                parent.setOccupation(parentDto.getOccupation());
+                if (parentDto.getSectorId() != null) {
+                    // Assuming you have a SectorRepository injected as 'sectorRepo'
+                    sectorRepository.findById(parentDto.getSectorId()).ifPresent(parent::setSector);
+                }
+                if (parentDto.getOccupation() != null) {
+                    if ("OTHERS".equalsIgnoreCase(parentDto.getOccupation())) {
+                        parent.setOccupation(parentDto.getOtherOccupation());  // store typed value
+                    } else {
+                        parent.setOccupation(parentDto.getOccupation()); // store dropdown value
+                    }
+                }
                 // Note: We don't update created_by for an existing record
                 
                 parentRepo.save(parent);
@@ -558,11 +586,18 @@ public class ApplicationNewConfirmationService {
 		            if (paymentDTO.getBranchId() != null) {
 		                orgBankBranchRepo.findById(paymentDTO.getBranchId()).ifPresent(transaction::setOrgBankBranch);
 		            }
+		            transaction.setIfsc_code(paymentDTO.getIfscCode());
+		            
+		            if (paymentDTO.getCityId() != null) {
+		                cityRepo.findById(paymentDTO.getCityId()).ifPresent(transaction::setCity);
+		            }
 		            
 		        } else if (paymentModeId == CHEQUE_PAYMENT_ID) {
 		            // --- Set Cheque-SpecFfic Fields ---
 		            transaction.setIfsc_code(paymentDTO.getIfscCode());
-		            
+		            if (paymentDTO.getOrganisationId() != null) {
+		                transaction.setOrg_id(paymentDTO.getOrganisationId());
+		            }
 		            if (paymentDTO.getCityId() != null) {
 		                cityRepo.findById(paymentDTO.getCityId()).ifPresent(transaction::setCity);
 		            }

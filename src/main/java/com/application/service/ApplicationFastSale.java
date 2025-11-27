@@ -2,6 +2,7 @@ package com.application.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,50 +42,14 @@ import com.application.entity.StudentOrientationDetails;
 import com.application.entity.StudentPersonalDetails;
 import com.application.entity.StudentRelation;
 import com.application.entity.StudyType;
-import com.application.repository.AcademicYearRepository;
-import com.application.repository.AdmissionTypeRepository;
-import com.application.repository.BloodGroupRepository;
-import com.application.repository.CampusRepository;
-import com.application.repository.CasteRepository;
-import com.application.repository.CityRepository;
-import com.application.repository.CmpsOrientationBatchFeeViewRepository;
-import com.application.repository.ConcessionReasonRepository;
-import com.application.repository.ConcessionTypeRepository;
-import com.application.repository.DistributionRepository;
-import com.application.repository.DistrictRepository;
-import com.application.repository.EmployeeRepository;
-import com.application.repository.FoodTypeRepository;
-import com.application.repository.GenderRepository;
-import com.application.repository.MandalRepository;
-import com.application.repository.OccupationRepository;
-import com.application.repository.OrgBankBranchRepository;
-import com.application.repository.OrgBankRepository;
-import com.application.repository.OrientationRepository;
-import com.application.repository.ParentDetailsRepository;
-import com.application.repository.PaymentDetailsRepository;
-import com.application.repository.PaymentModeRepository;
-import com.application.repository.QuotaRepository;
-import com.application.repository.ReligionRepository;
-import com.application.repository.SectorRepository;
-import com.application.repository.SiblingRepository;
-import com.application.repository.StateRepository;
-import com.application.repository.StatusRepository;
-import com.application.repository.StudentAcademicDetailsRepository;
-import com.application.repository.StudentAddressRepository;
-import com.application.repository.StudentApplicationTransactionRepository;
-import com.application.repository.StudentClassRepository;
-import com.application.repository.StudentConcessionTypeRepository;
-import com.application.repository.StudentOrientationDetailsRepository;
-import com.application.repository.StudentPersonalDetailsRepository;
-import com.application.repository.StudentRelationRepository;
-import com.application.repository.StudentTypeRepository;
-import com.application.repository.StudyTypeRepository;
-
+import com.application.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 
 @Service
 public class ApplicationFastSale {
+
+    private final DgmRepository dgmRepository;
 
 	private final ReligionRepository religionRepository;
 
@@ -162,10 +127,12 @@ public class ApplicationFastSale {
 	private CasteRepository casteRepository;
 	@Autowired
 	private CmpsOrientationBatchFeeViewRepository cmpsOrientationBatchFeeViewRepository;
+	@Autowired CampusSchoolTypeRepository schoolTypeRepository;
 
-	ApplicationFastSale(EmployeeRepository employeeRepository, ReligionRepository religionRepository) {
+	ApplicationFastSale(EmployeeRepository employeeRepository, ReligionRepository religionRepository, DgmRepository dgmRepository) {
 		this.employeeRepository = employeeRepository;
 		this.religionRepository = religionRepository;
+		this.dgmRepository = dgmRepository;
 	}
 
 	// Application Fast SALE - college
@@ -198,15 +165,10 @@ public class ApplicationFastSale {
 		academicDetails.setLast_name(formData.getLastName());
 		academicDetails.setAdms_date(LocalDate.now());
 		academicDetails.setApaar_no(formData.getApaarNo());
-		// academicDetails.setApp_sale_date(LocalDate.now());
+		academicDetails.setApp_sale_date(new Date());
 
-		if (formData.getProId() != null) {
-			// Convert the Integer Employee ID from the DTO to a String
-			String referredByEmployeeId = String.valueOf(formData.getProId());
 
-			// Set the String value in the admission_referred_by column
-			academicDetails.setAdmission_referred_by(referredByEmployeeId);
-		}
+			academicDetails.setAdmission_referred_by(formData.getAdmissionReferredBy());
 
 		// Quota (Admission referred by)
 		if (formData.getQuotaId() != null) {
@@ -366,152 +328,164 @@ public class ApplicationFastSale {
 	}
 
 	// Application FastSale Get
-	public ApplicationFastDetailsGet getFastSaleDetailsByAdmissionNo(Long studAdmsNo) {
-		// 1. Fetch the main academic record
-		StudentAcademicDetails student = studentAcademicDetailsRepository.findByStudAdmsNo(studAdmsNo)
-				.orElseThrow(() -> new EntityNotFoundException("Student not found with Admission No: " + studAdmsNo));
+public ApplicationFastDetailsGet getFastSaleDetailsByAdmissionNo(Long studAdmsNo) {
 
-		// 2. Fetch related records (handle possibility of them being null/multiple)
-		Optional<StudentPersonalDetails> personalOpt = personalDetailsRepository.findByStudentAcademicDetails(student);
-		Optional<StudentOrientationDetails> orientationOpt = orientationDetailsRepository
-				.findByStudentAcademicDetails(student);
-		// Assuming Father has relationTypeId = 1
-		Optional<ParentDetails> fatherOpt = parentDetailsRepository
-				.findByStudentAcademicDetailsAndStudentRelationRelationId(student, 1);
+    StudentAcademicDetails student = studentAcademicDetailsRepository.findByStudAdmsNo(studAdmsNo)
+            .orElseThrow(() -> new EntityNotFoundException("Student not found with Admission No: " + studAdmsNo));
 
-		// Fetch Address (Assuming one address per student for fast sale)
-		Optional<StudentAddress> addressOpt = studentAddressRepository.findByStudentAcademicDetails(student);
+    Optional<StudentPersonalDetails> personalOpt = personalDetailsRepository.findByStudentAcademicDetails(student);
+    Optional<StudentOrientationDetails> orientationOpt = orientationDetailsRepository.findByStudentAcademicDetails(student);
+    Optional<ParentDetails> fatherOpt = parentDetailsRepository
+            .findByStudentAcademicDetailsAndStudentRelationRelationId(student, 1);
+    Optional<StudentAddress> addressOpt = studentAddressRepository.findByStudentAcademicDetails(student);
 
-		// Fetch Payment (Assuming one payment for application fee for fast sale)
-		// You might need a more specific query if a student has multiple payments.
-		Optional<PaymentDetails> paymentOpt = paymentDetailsRepository.findByStudentAcademicDetails(student);
+    ApplicationFastDetailsGet detailsDTO = new ApplicationFastDetailsGet();
 
-		// Fetch Transaction (only for DD/Cheque payment modes: ID 2 or 3)
-		Optional<StudentApplicationTransaction> transactionOpt = Optional.empty();
-		if (paymentOpt.isPresent()) {
-			transactionOpt = studentApplicationTransactionRepository.findByPaymentDetails(paymentOpt.get());
-		}
+    // --- Core Admission Fields ---
+    detailsDTO.setFirstName(student.getFirst_name());
+    detailsDTO.setLastName(student.getLast_name());
+    detailsDTO.setApaarNo(student.getApaar_no());
 
-		// 3. Create the main DTO
-		ApplicationFastDetailsGet detailsDTO = new ApplicationFastDetailsGet();
-		// Set Admission Number
-		
+    // Admission Referred By
+String referredBy = student.getAdmission_referred_by();
 
-		// 4. Map Academic Details (all fast sale fields)
-		detailsDTO.setFirstName(student.getFirst_name());
-		detailsDTO.setLastName(student.getLast_name());
-		detailsDTO.setApaarNo(student.getApaar_no()); // <<< MISSING FIELD ADDED
+if (referredBy != null && !referredBy.trim().isEmpty()) {
 
-		if (student.getAdmission_referred_by() != null) {
-			// Since it's stored as a String (Employee ID), pass it directly
-			try {
-				detailsDTO.setProId(Integer.valueOf(student.getAdmission_referred_by())); // <<< MISSING FIELD ADDED
-			} catch (NumberFormatException e) {
-				// Handle if the stored value is not a valid Integer ID
-			}
-		}
+    try {
+        // Try treat as employee ID
+        Integer empId = Integer.valueOf(referredBy);
+        detailsDTO.setAdmissionReferredById(empId);
 
-		// Map Lookups from Academic Details
-		if (student.getGender() != null) {
-			detailsDTO.setGenderId(student.getGender().getGender_id());
-			detailsDTO.setGenderName(student.getGender().getGenderName());
-		}
+        employeeRepository.findById(empId).ifPresentOrElse(emp -> {
 
-		if (student.getQuota() != null) {
-			detailsDTO.setQuotaId(student.getQuota().getQuota_id());
-			detailsDTO.setQuotaName(student.getQuota().getQuota_name());
-		}
+            // FIXED: use actual column names from your entity
+            String fullName = emp.getFirst_name()
+                    + (emp.getLast_name() != null ? " " + emp.getLast_name() : "");
 
-		if (student.getAdmissionType() != null) {
-			detailsDTO.setAppTypeId(student.getAdmissionType().getAdms_type_id()); // <<< MISSING FIELD ADDED
-			detailsDTO.setAdmissionTypeName(student.getAdmissionType().getAdms_type_name());
-		}
+            detailsDTO.setAdmissionReferredByName(fullName);
 
-		if (student.getAcademicYear() != null) {
-			detailsDTO.setAcademicYearId(student.getAcademicYear().getAcdcYearId());
-			detailsDTO.setAcademicYearValue(student.getAcademicYear().getAcademicYear());
-		}
+        }, () -> {
+            // Employee not found → fallback
+            detailsDTO.setAdmissionReferredByName(referredBy);
+        });
 
-		if (student.getCampus() != null) {
-			detailsDTO.setBranchId(student.getCampus().getCampusId());
-			detailsDTO.setBranchName(student.getCampus().getCampusName());
-		}
+    } catch (NumberFormatException e) {
+        // Not a number → treat as plain name
+        detailsDTO.setAdmissionReferredById(null);
+        detailsDTO.setAdmissionReferredByName(referredBy);
+    }
 
-		if (student.getStudentType() != null) {
-			detailsDTO.setStudentTypeId(student.getStudentType().getStud_type_id());
-			detailsDTO.setStudentTypeName(student.getStudentType().getStud_type());
-		}
+} else {
+    detailsDTO.setAdmissionReferredById(null);
+    detailsDTO.setAdmissionReferredByName(null);
+}
 
-		if (student.getStudentClass() != null) {
-			detailsDTO.setJoiningClassId(student.getStudentClass().getClassId());
-			detailsDTO.setJoiningClassName(student.getStudentClass().getClassName());
-		}
 
-		// 5. Map Personal Details (DOB and Aadhaar)
-		personalOpt.ifPresent(personal -> {
-			detailsDTO.setDob(personal.getDob());
-			detailsDTO.setAadharCardNo(personal.getStud_aadhaar_no()); // <<< MISSING FIELD ADDED
-		});
+    // Gender
+    if (student.getGender() != null) {
+        detailsDTO.setGenderId(student.getGender().getGender_id());
+        detailsDTO.setGenderName(student.getGender().getGenderName());
+    }
 
-		// 6. Map Orientation Details
-		Integer cmpsId = student.getCampus() != null ? student.getCampus().getCampusId() : null;
-	    Integer classId = student.getStudentClass() != null ? student.getStudentClass().getClassId() : null;
-	    
-	    // --- 🔑 FIX: Use Optional.map to extract and set the DTO fields 🔑 ---
-	    Integer orientationId = orientationOpt
-	        .flatMap(orientation -> Optional.ofNullable(orientation.getOrientation()))
-	        .map(orientation -> {
-	            // Set DTO fields inside the safe map operation
-	            detailsDTO.setOrientationId(orientation.getOrientationId());
-	            detailsDTO.setOrientationName(orientation.getOrientation_name());
-	            
-	            // Return the ID for assignment to the external variable
-	            return orientation.getOrientationId(); 
-	        })
-	        .orElse(null);
-		
-		
-		if (orientationId != null && cmpsId != null && classId != null) {
-	        Optional<CmpsOrientationBatchFeeView> orientationFeeDetails = cmpsOrientationBatchFeeViewRepository
-	                .findSingleBestBatchDetails(orientationId, cmpsId, classId);
+    // Quota
+    if (student.getQuota() != null) {
+        detailsDTO.setQuotaId(student.getQuota().getQuota_id());
+        detailsDTO.setQuotaName(student.getQuota().getQuota_name());
+    }
 
-	        orientationFeeDetails.ifPresent(feeView -> {
-	            detailsDTO.setOrientationStartDate(feeView.getOrientationStartDate()); 
-	            detailsDTO.setOrientationEndDate(feeView.getOrientationEndDate());
-	            detailsDTO.setOrientationFee(feeView.getOrientationFee()); // Assuming DTO fields exist
-	        });
-	    }
+    // Admission Type
+    if (student.getAdmissionType() != null) {
+        detailsDTO.setAdmissionTypeId(student.getAdmissionType().getAdms_type_id());
+        detailsDTO.setAdmissionTypeName(student.getAdmissionType().getAdms_type_name());
+    }
 
-		// 7. Map Parent Details (Father only)
-		fatherOpt.ifPresent(father -> {
-			detailsDTO.setParentInfo(new ParentSummaryDTO(father.getName(), father.getMobileNo()));
-		});
+    // Academic Year
+    if (student.getAcademicYear() != null) {
+        detailsDTO.setAcademicYearId(student.getAcademicYear().getAcdcYearId());
+        detailsDTO.setAcademicYearValue(student.getAcademicYear().getAcademicYear());
+    }
 
-		// 8. Map Address Details
-		addressOpt.ifPresent(address -> {
-			AddressDetailsDTO addressDTO = new AddressDetailsDTO();
-			addressDTO.setDoorNo(address.getHouse_no());
-			addressDTO.setStreet(address.getStreet());
-			addressDTO.setLandmark(address.getLandmark());
-			addressDTO.setArea(address.getArea());
-			addressDTO.setPincode(address.getPostalCode());
-			addressDTO.setCreatedBy(address.getCreated_by());
+    // Branch (Campus)
+    if (student.getCampus() != null) {
+        Campus campus = student.getCampus();
 
-			if (address.getState() != null)
-				addressDTO.setStateId(address.getState().getStateId());
-			if (address.getCity() != null)
-				addressDTO.setCityId(address.getCity().getCityId());
-			if (address.getMandal() != null)
-				addressDTO.setMandalId(address.getMandal().getMandal_id());
-			if (address.getDistrict() != null)
-				addressDTO.setDistrictId(address.getDistrict().getDistrictId());
+        detailsDTO.setBranchId(campus.getCampusId());
+        detailsDTO.setBranchName(campus.getCampusName());
 
-			detailsDTO.setAddressDetails(addressDTO); // <<< MISSING FIELD ADDED
-		});
-		// Skip ProReceiptNo (not posted in fast sale)
+        // --- NEW: City from Campus ---
+        if (campus.getCity() != null) {
+            detailsDTO.setCityId(campus.getCity().getCityId());
+            detailsDTO.setCityName(campus.getCity().getCityName());
+        }
+    }
 
-		return detailsDTO;
-	}
+    // Student Type
+    if (student.getStudentType() != null) {
+        detailsDTO.setStudentTypeId(student.getStudentType().getStud_type_id());
+        detailsDTO.setStudentTypeName(student.getStudentType().getStud_type());
+    }
+
+    // Class
+    if (student.getStudentClass() != null) {
+        detailsDTO.setJoiningClassId(student.getStudentClass().getClassId());
+        detailsDTO.setJoiningClassName(student.getStudentClass().getClassName());
+    }
+
+    // Personal Details
+    personalOpt.ifPresent(personal -> {
+        detailsDTO.setDob(personal.getDob());
+        detailsDTO.setAadharCardNo(personal.getStud_aadhaar_no());
+    });
+
+    // Orientation + Fee
+    Integer cmpsId = student.getCampus() != null ? student.getCampus().getCampusId() : null;
+    Integer classId = student.getStudentClass() != null ? student.getStudentClass().getClassId() : null;
+
+    Integer orientationId = orientationOpt
+            .flatMap(orientation -> Optional.ofNullable(orientation.getOrientation()))
+            .map(orientation -> {
+                detailsDTO.setOrientationId(orientation.getOrientationId());
+                detailsDTO.setOrientationName(orientation.getOrientation_name());
+                return orientation.getOrientationId();
+            })
+            .orElse(null);
+
+    if (orientationId != null && cmpsId != null && classId != null) {
+        cmpsOrientationBatchFeeViewRepository
+                .findSingleBestBatchDetails(orientationId, cmpsId, classId)
+                .ifPresent(feeView -> {
+                    detailsDTO.setOrientationStartDate(feeView.getOrientationStartDate());
+                    detailsDTO.setOrientationEndDate(feeView.getOrientationEndDate());
+                    detailsDTO.setOrientationFee(feeView.getOrientationFee());
+                });
+    }
+
+    // Parent Info
+    fatherOpt.ifPresent(father ->
+            detailsDTO.setParentInfo(new ParentSummaryDTO(father.getName(), father.getMobileNo()))
+    );
+
+    // Address
+    addressOpt.ifPresent(address -> {
+        AddressDetailsDTO addr = new AddressDetailsDTO();
+        addr.setDoorNo(address.getHouse_no());
+        addr.setStreet(address.getStreet());
+        addr.setLandmark(address.getLandmark());
+        addr.setArea(address.getArea());
+        addr.setPincode(address.getPostalCode());
+        addr.setCreatedBy(address.getCreated_by());
+
+        if (address.getState() != null) addr.setStateId(address.getState().getStateId());
+        if (address.getCity() != null) addr.setCityId(address.getCity().getCityId());
+        if (address.getMandal() != null) addr.setMandalId(address.getMandal().getMandal_id());
+        if (address.getDistrict() != null) addr.setDistrictId(address.getDistrict().getDistrictId());
+
+        detailsDTO.setAddressDetails(addr);
+    });
+
+    return detailsDTO;
+}
+
 
 	// ApplicationSale - Colleges
 @Transactional
@@ -552,14 +526,13 @@ public StudentAcademicDetails createApplicationSale(StudentApplicationSaleColege
     if (formData.getAppTypeId() != null) admissionTypeRepository.findById(formData.getAppTypeId()).ifPresent(academicDetails::setAdmissionType);
     if (formData.getAcademicYearId() != null) academicYearRepository.findById(formData.getAcademicYearId()).ifPresent(academicDetails::setAcademicYear);
     if (formData.getStudentTypeId() != null) studentTypeRepository.findById(formData.getStudentTypeId()).ifPresent(academicDetails::setStudentType);
+    if(formData.getSchoolType()!=null) schoolTypeRepository.findById(formData.getSchoolType()).ifPresent(academicDetails::setCampusSchoolType);
 
     // Fields that must be set/updated regardless of prior state
     academicDetails.setAdms_date(LocalDate.now());
     academicDetails.setApp_sale_date(formData.getAppSaleDate());
+    academicDetails.setAdmission_referred_by(formData.getAdmissionReferedBy());
     
-    if (formData.getProId() != null) {
-        academicDetails.setAdmission_referred_by(String.valueOf(formData.getProId()));
-    }
     if (formData.getProReceiptNo() != null) {
         academicDetails.setPro_receipt_no(formData.getProReceiptNo().intValue());
     }
@@ -812,11 +785,11 @@ public StudentAcademicDetails createApplicationSale(StudentApplicationSaleColege
 	// application-sale - colleges - get
 
 	@Transactional
-public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) {
+public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsNo) {
 
     // 1. Fetch Academic Entity
-    StudentAcademicDetails academic = studentAcademicDetailsRepository.findByStudAdmsNo(studAdmsId)
-            .orElseThrow(() -> new EntityNotFoundException("ID not found"));
+    StudentAcademicDetails academic = studentAcademicDetailsRepository.findByStudAdmsNo(studAdmsNo)
+            .orElseThrow(() -> new EntityNotFoundException("Student not found"));
 
     StudentApplicationSingleDTO dto = new StudentApplicationSingleDTO();
 
@@ -831,6 +804,28 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
     dto.setScoreMarks(academic.getScore_marks());
     dto.setPreSchoolName(academic.getPre_school_name());
 
+    // ============================================
+    // 1️⃣ FIX: Admission Referred By (String → ID/Name)
+    // ============================================
+    String ref = academic.getAdmission_referred_by();
+
+    if (ref != null && !ref.trim().isEmpty()) {
+        try {
+            Integer empId = Integer.valueOf(ref);
+            dto.setAdmissionReferredByID(empId);
+
+            employeeRepository.findById(empId).ifPresentOrElse(emp -> {
+                String fullName = emp.getFirst_name() +
+                        (emp.getLast_name() != null ? " " + emp.getLast_name() : "");
+                dto.setAdmissionReferredByName(fullName);
+            }, () -> dto.setAdmissionReferredByName(ref));
+
+        } catch (NumberFormatException e) {
+            dto.setAdmissionReferredByID(null);
+            dto.setAdmissionReferredByName(ref); // plain string
+        }
+    }
+
     // --- Academic Lookups ---
     if (academic.getAcademicYear() != null) {
         dto.setAcademicYearId(academic.getAcademicYear().getAcdcYearId());
@@ -841,13 +836,21 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
         dto.setClassName(academic.getStudentClass().getClassName());
     }
     if (academic.getCampus() != null) {
-        dto.setBranchId(academic.getCampus().getCampusId());
-        dto.setBranchName(academic.getCampus().getCampusName());
+
+        Campus campus = academic.getCampus();
+
+        dto.setBranchId(campus.getCampusId());
+        dto.setBranchName(campus.getCampusName());
+
+        // ============================================
+        // 2️⃣ FIX: City from Campus
+        // ============================================
+        if (campus.getCity() != null) {
+            dto.setCityId(campus.getCity().getCityId());
+            dto.setCityName(campus.getCity().getCityName());
+        }
     }
-    if (academic.getEmployee() != null) {
-        dto.setProId(academic.getEmployee().getEmp_id());
-        dto.setProName(academic.getEmployee().getFirst_name() + " " + academic.getEmployee().getLast_name());
-    }
+
     if (academic.getQuota() != null) {
         dto.setQuotaId(academic.getQuota().getQuota_id());
         dto.setQuotaName(academic.getQuota().getQuota_name());
@@ -864,6 +867,10 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
         dto.setStudentTypeId(academic.getStudentType().getStud_type_id());
         dto.setStudentTypeName(academic.getStudentType().getStud_type());
     }
+    if (academic.getStudyType() != null) {
+        dto.setStudyTypeId(academic.getStudyType().getStudy_type_id());
+        dto.setStudyTypeName(academic.getStudyType().getStudy_type_name());
+    }
 
     // Pre-School State & District
     if (academic.getState() != null) {
@@ -876,10 +883,7 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
     }
 
     // --- Personal Details ---
-    StudentPersonalDetails personal = personalDetailsRepository
-            .findByStudentAcademicDetails(academic).orElse(null);
-
-    if (personal != null) {
+    personalDetailsRepository.findByStudentAcademicDetails(academic).ifPresent(personal -> {
         dto.setAadharNo(personal.getStud_aadhaar_no());
         dto.setDob(personal.getDob());
 
@@ -899,11 +903,11 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
             dto.setFoodTypeId(personal.getFoodType().getFood_type_id());
             dto.setFoodTypeName(personal.getFoodType().getFood_type());
         }
-    }
+    });
 
     // --- Orientation Details ---
-    StudentOrientationDetails orientation = orientationDetailsRepository
-            .findByStudentAcademicDetails(academic).orElse(null);
+    StudentOrientationDetails orientation =
+            orientationDetailsRepository.findByStudentAcademicDetails(academic).orElse(null);
 
     if (orientation != null && orientation.getOrientation() != null) {
 
@@ -916,12 +920,12 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
 
         if (orientationId != null && cmpsId != null && classId != null) {
             cmpsOrientationBatchFeeViewRepository
-                .findSingleBestBatchDetails(orientationId, cmpsId, classId)
-                .ifPresent(feeView -> {
-                    dto.setOrientationStartDate(feeView.getOrientationStartDate());
-                    dto.setOrientationEndDate(feeView.getOrientationEndDate());
-                    dto.setOrientationFee(feeView.getOrientationFee());
-                });
+                    .findSingleBestBatchDetails(orientationId, cmpsId, classId)
+                    .ifPresent(feeView -> {
+                        dto.setOrientationStartDate(feeView.getOrientationStartDate());
+                        dto.setOrientationEndDate(feeView.getOrientationEndDate());
+                        dto.setOrientationFee(feeView.getOrientationFee());
+                    });
         }
     }
 
@@ -936,25 +940,17 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
             dto.setFatherEmail(p.getEmail());
             dto.setFatherOccupationName(p.getOccupation());
 
-
-            dto.setFatherOccupationName(p.getOccupation());
-
             if (p.getSector() != null) {
                 dto.setFatherSectorId(p.getSector().getOccupation_sector_id());
                 dto.setFatherSectorName(p.getSector().getSector_name());
             }
 
         } else if (p.getStudentRelation().getRelationId() == 2) { // Mother
+
             dto.setMotherName(p.getName());
             dto.setMotherMobile(p.getMobileNo());
             dto.setMotherEmail(p.getEmail());
             dto.setMotherOccupationName(p.getOccupation());
-
-            dto.setMotherOccupationName(p.getOccupation());
-
-
-
-
 
             if (p.getSector() != null) {
                 dto.setMotherSectorId(p.getSector().getOccupation_sector_id());
@@ -964,9 +960,7 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
     }
 
     // --- Address ---
-    StudentAddress address = studentAddressRepository.findByStudentAcademicDetails(academic).orElse(null);
-
-    if (address != null) {
+    studentAddressRepository.findByStudentAcademicDetails(academic).ifPresent(address -> {
         dto.setDoorNo(address.getHouse_no());
         dto.setStreet(address.getStreet());
         dto.setArea(address.getArea());
@@ -989,48 +983,11 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
             dto.setAddressMandalId(address.getMandal().getMandal_id());
             dto.setAddressMandalName(address.getMandal().getMandal_name());
         }
-    }
-
-    // --- Payment (Only required fields) ---
-//    PaymentDetails payment = paymentDetailsRepository.findByStudentAcademicDetails(academic).orElse(null);
-//
-//    if (payment != null) {
-//        dto.setPaidAmount(payment.getPaid_amount());
-//        dto.setPaymentDate(payment.getApplication_fee_pay_date());
-//        dto.setReceiptNo(payment.getPre_print_receipt_no());
-//        dto.setRemarks(payment.getRemarks());
-//
-//        if (payment.getPaymenMode() != null) {
-//            dto.setPaymentModeId(payment.getPaymenMode().getPayment_mode_id());
-//            dto.setPaymentModeName(payment.getPaymenMode().getPayment_type());
-//        }
-//
-//        StudentApplicationTransaction trans =
-//                studentApplicationTransactionRepository.findByPaymentDetails(payment).orElse(null);
-//
-//        if (trans != null) {
-//            dto.setTransactionNumber(trans.getNumber());
-//            dto.setTransactionDate(trans.getDate());
-//            dto.setIfscCode(trans.getIfsc_code());
-//
-//            if (trans.getOrgBank() != null) {
-//                dto.setBankId(trans.getOrgBank().getOrg_bank_id());
-//                dto.setBankName(trans.getOrgBank().getBank_name());
-//            }
-//            if (trans.getOrgBankBranch() != null) {
-//                dto.setBankBranchId(trans.getOrgBankBranch().getOrg_bank_branch_id());
-//                dto.setBankBranchName(trans.getOrgBankBranch().getBranch_name());
-//            }
-//        }
-//    }
+    });
 
     // --- Siblings ---
-    List<Sibling> siblingList = siblingRepository.findByStudentAcademicDetails(academic);
-
-    for (Sibling s : siblingList) {
-
-        StudentApplicationSingleDTO.SiblingItem item =
-                new StudentApplicationSingleDTO.SiblingItem();
+    siblingRepository.findByStudentAcademicDetails(academic).forEach(s -> {
+        StudentApplicationSingleDTO.SiblingItem item = new StudentApplicationSingleDTO.SiblingItem();
 
         item.setFullName(s.getSibling_name());
         item.setSchoolName(s.getSibling_school());
@@ -1039,24 +996,17 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
             item.setClassId(s.getStudentClass().getClassId());
             item.setClassName(s.getStudentClass().getClassName());
         }
-
         if (s.getStudentRelation() != null) {
             item.setRelationId(s.getStudentRelation().getRelationId());
             item.setRelationName(s.getStudentRelation().getRelationType());
         }
 
-
         dto.getSiblings().add(item);
-    }
+    });
 
     // --- Concessions ---
-    List<StudentConcessionType> concList =
-            concessionRepository.findByStudAdmsId(academic.getStud_adms_id());
-
-    for (StudentConcessionType c : concList) {
-
-        StudentApplicationSingleDTO.ConcessionItem item =
-                new StudentApplicationSingleDTO.ConcessionItem();
+    concessionRepository.findByStudAdmsId(academic.getStud_adms_id()).forEach(c -> {
+        StudentApplicationSingleDTO.ConcessionItem item = new StudentApplicationSingleDTO.ConcessionItem();
 
         item.setAmount(c.getConc_amount());
         item.setComments(c.getComments());
@@ -1065,17 +1015,17 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
             item.setConcessionTypeId(c.getConcessionType().getConcTypeId());
             item.setConcessionTypeName(c.getConcessionType().getConc_type());
         }
-
         if (c.getConcessionReason() != null) {
             item.setReasonId(c.getConcessionReason().getConc_reason_id());
             item.setReasonName(c.getConcessionReason().getConc_reason());
         }
 
         dto.getConcessions().add(item);
-    }
+    });
 
     return dto;
 }
+
 
 
 	// ApplicationSale -college - upadte
@@ -1128,13 +1078,11 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
 	    if (formData.getProReceiptNo() != null) {
 	        academicDetails.setPro_receipt_no(formData.getProReceiptNo().intValue());
 	    }
-
-	    if (formData.getProId() != null && formData.getProId() > 0) {
-	        employeeRepository.findById(formData.getProId()).ifPresent(emp -> {
-	            academicDetails.setEmployee(emp);
-	            academicDetails.setAdmission_referred_by(String.valueOf(emp.getEmp_id()));
-	        });
+	    
+	    if (formData.getAdmissionReferredBy() != null) {
+	        academicDetails.setAdmission_referred_by(formData.getAdmissionReferredBy());
 	    }
+
 
 	    if (formData.getQuotaId() != null && formData.getQuotaId() > 0) {
 	        quotaRepository.findById(formData.getQuotaId()).ifPresent(academicDetails::setQuota);
@@ -1286,6 +1234,11 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
 	        if (father.getCreated_by() == 0 && formData.getCreatedBy() != null) {
 	            father.setCreated_by(formData.getCreatedBy());
 	        }
+	        
+	        if (formData.getFatherSectorId() != null && formData.getFatherSectorId() > 0) {
+	            sectorRepository.findById(formData.getFatherSectorId()).ifPresent(father::setSector);
+	        }
+
 
 	        parentDetailsRepository.save(father);
 	    }
@@ -1432,161 +1385,161 @@ public StudentApplicationSingleDTO getSingleApplicationDetails(Long studAdmsId) 
 
 
 	// Application confirmation - college
-	@Transactional
-	public String confirmCollegeEnrollment(StudentCollegeConfirmationDto formData) {
-
-		// 1. Fetch main Academic Entity
-		StudentAcademicDetails academicDetails = studentAcademicDetailsRepository.findByStudAdmsNo(formData.getStudAdmsNo())
-	            .orElseThrow(() -> new EntityNotFoundException("Student not found with Admission No: " + formData.getStudAdmsNo()));
-	 
-		// 2. Update/Set Enrollment Details on StudentAcademicDetails
-		// ... (Enrollment update logic remains the same) ...
-
-		// Academic Year
-		if (formData.getAcademicYearId() != null)
-			academicYearRepository.findById(formData.getAcademicYearId()).ifPresent(academicDetails::setAcademicYear);
-
-		// Joining Class
-		if (formData.getJoiningClassId() != null)
-			classRepository.findById(formData.getJoiningClassId()).ifPresent(academicDetails::setStudentClass);
-
-		// Branch (Campus)
-		if (formData.getBranchId() != null)
-			campusRepository.findById(formData.getBranchId()).ifPresent(academicDetails::setCampus);
-
-		// Student Type
-		if (formData.getStudentTypeId() != null)
-			studentTypeRepository.findById(formData.getStudentTypeId()).ifPresent(academicDetails::setStudentType);
-
-		// City & Course mapping... (Placeholders)
-
-		Status defaultStatus = statusRepository.findById(1)
-				.orElseThrow(() -> new EntityNotFoundException("Default Status (ID: 2) not found"));
-		academicDetails.setStatus(defaultStatus);
-
-		StudentAcademicDetails savedAcademicDetails = studentAcademicDetailsRepository.save(academicDetails);
-
-		// 3. Save/Update Concession Details (Concession logic remains the same)
-
-		if (formData.getConcessions() != null && !formData.getConcessions().isEmpty()) {
-			// ... (Concession UPSERT logic runs here) ...
-
-			Map<Integer, StudentConcessionType> existingConcessionsMap = concessionRepository
-					.findByStudAdmsId(savedAcademicDetails.getStud_adms_id()).stream()
-					.filter(c -> c.getConcessionType() != null).collect(Collectors.toMap(
-							c -> c.getConcessionType().getConcTypeId(), Function.identity(), (first, second) -> first));
-
-			AcademicYear currentYear = savedAcademicDetails.getAcademicYear();
-			if (currentYear == null) {
-			    if (formData.getAcademicYearId() == null) {
-			        throw new IllegalArgumentException("Academic Year must be provided when no existing year is found.");
-			    }
-			    currentYear = academicYearRepository.findById(formData.getAcademicYearId())
-			            .orElseThrow(() -> new EntityNotFoundException("Academic Year not found"));
-			}
-
-			for (ConcessionConfirmationDTO concDto : formData.getConcessions()) {
-				StudentConcessionType concession = existingConcessionsMap.get(concDto.getConcessionTypeId());
-
-				if (concession == null) {
-					concession = new StudentConcessionType();
-					concession.setStudAdmsId(savedAcademicDetails.getStud_adms_id());
-					concession.setAcademicYear(currentYear);
-					concession.setCreated_by(concDto.getCreatedBy());
-					concession.setCreated_Date(LocalDateTime.now());
-
-					if (concDto.getConcessionTypeId() != null) {
-						concessionTypeRepository.findById(concDto.getConcessionTypeId())
-								.ifPresent(concession::setConcessionType);
+		@Transactional
+		public String confirmCollegeEnrollment(StudentCollegeConfirmationDto formData) {
+	
+			// 1. Fetch main Academic Entity
+			StudentAcademicDetails academicDetails = studentAcademicDetailsRepository.findByStudAdmsNo(formData.getStudAdmsNo())
+		            .orElseThrow(() -> new EntityNotFoundException("Student not found with Admission No: " + formData.getStudAdmsNo()));
+		 
+			// 2. Update/Set Enrollment Details on StudentAcademicDetails
+			// ... (Enrollment update logic remains the same) ...
+	
+			// Academic Year
+			if (formData.getAcademicYearId() != null)
+				academicYearRepository.findById(formData.getAcademicYearId()).ifPresent(academicDetails::setAcademicYear);
+	
+			// Joining Class
+			if (formData.getJoiningClassId() != null)
+				classRepository.findById(formData.getJoiningClassId()).ifPresent(academicDetails::setStudentClass);
+	
+			// Branch (Campus)
+			if (formData.getBranchId() != null)
+				campusRepository.findById(formData.getBranchId()).ifPresent(academicDetails::setCampus);
+	
+			// Student Type
+			if (formData.getStudentTypeId() != null)
+				studentTypeRepository.findById(formData.getStudentTypeId()).ifPresent(academicDetails::setStudentType);
+	
+			// City & Course mapping... (Placeholders)
+	
+			Status defaultStatus = statusRepository.findById(1)
+					.orElseThrow(() -> new EntityNotFoundException("Default Status (ID: 2) not found"));
+			academicDetails.setStatus(defaultStatus);
+	
+			StudentAcademicDetails savedAcademicDetails = studentAcademicDetailsRepository.save(academicDetails);
+	
+			// 3. Save/Update Concession Details (Concession logic remains the same)
+	
+			if (formData.getConcessions() != null && !formData.getConcessions().isEmpty()) {
+				// ... (Concession UPSERT logic runs here) ...
+	
+				Map<Integer, StudentConcessionType> existingConcessionsMap = concessionRepository
+						.findByStudAdmsId(savedAcademicDetails.getStud_adms_id()).stream()
+						.filter(c -> c.getConcessionType() != null).collect(Collectors.toMap(
+								c -> c.getConcessionType().getConcTypeId(), Function.identity(), (first, second) -> first));
+	
+				AcademicYear currentYear = savedAcademicDetails.getAcademicYear();
+				if (currentYear == null) {
+				    if (formData.getAcademicYearId() == null) {
+				        throw new IllegalArgumentException("Academic Year must be provided when no existing year is found.");
+				    }
+				    currentYear = academicYearRepository.findById(formData.getAcademicYearId())
+				            .orElseThrow(() -> new EntityNotFoundException("Academic Year not found"));
+				}
+	
+				for (ConcessionConfirmationDTO concDto : formData.getConcessions()) {
+					StudentConcessionType concession = existingConcessionsMap.get(concDto.getConcessionTypeId());
+	
+					if (concession == null) {
+						concession = new StudentConcessionType();
+						concession.setStudAdmsId(savedAcademicDetails.getStud_adms_id());
+						concession.setAcademicYear(currentYear);
+						concession.setCreated_by(concDto.getCreatedBy());
+						concession.setCreated_Date(LocalDateTime.now());
+	
+						if (concDto.getConcessionTypeId() != null) {
+							concessionTypeRepository.findById(concDto.getConcessionTypeId())
+									.ifPresent(concession::setConcessionType);
+						}
 					}
+	
+					concession.setConc_amount(concDto.getConcessionAmount());
+					concession.setComments(concDto.getComments());
+	
+					if (concDto.getReasonId() != null) {
+						concessionReasonRepository.findById(concDto.getReasonId())
+								.ifPresent(concession::setConcessionReason);
+					}
+					concession.setConc_referred_by(concDto.getConcReferedBy());
+					if (concDto.getGivenById() != null) {
+						concession.setConc_issued_by(concDto.getGivenById());
+					}
+					if (concDto.getAuthorizedById() != null) {
+						concession.setConc_authorised_by(concDto.getAuthorizedById());
+					}
+	
+					concessionRepository.save(concession);
 				}
-
-				concession.setConc_amount(concDto.getConcessionAmount());
-				concession.setComments(concDto.getComments());
-
-				if (concDto.getReasonId() != null) {
-					concessionReasonRepository.findById(concDto.getReasonId())
-							.ifPresent(concession::setConcessionReason);
-				}
-				concession.setConc_referred_by(concDto.getConcReferedBy());
-				if (concDto.getGivenById() != null) {
-					concession.setConc_issued_by(concDto.getGivenById());
-				}
-				if (concDto.getAuthorizedById() != null) {
-					concession.setConc_authorised_by(concDto.getAuthorizedById());
-				}
-
-				concessionRepository.save(concession);
 			}
-		}
-
-		// ==============================================================
-		// 🔑 PART 4: CREATE THE PAYMENT AND TRANSACTION (New Logic)
-		// ==============================================================
-		// ==============================================================
-		// 🔑 PART 4: ALWAYS CREATE NEW PAYMENT + TRANSACTION
-		// ==============================================================
-		PaymentDetailsDTO paymentDTO = formData.getPaymentDetails();
-
-		if (paymentDTO != null && paymentDTO.getAmount() != null) {
-
-			// 🟢 Always create NEW payment record
-			PaymentDetails paymentDetails = new PaymentDetails();
-			paymentDetails.setStudentAcademicDetails(savedAcademicDetails);
-			paymentDetails.setApplication_fee_pay_date(paymentDTO.getPaymentDate());
-			paymentDetails.setPre_print_receipt_no(paymentDTO.getPrePrintedReceiptNo());
-			paymentDetails.setRemarks(paymentDTO.getRemarks());
-			paymentDetails.setCreated_by(paymentDTO.getCreatedBy());
-			paymentDetails.setApp_fee(paymentDTO.getAmount());
-			paymentDetails.setPaid_amount(paymentDTO.getAmount());
-			paymentDetails.setAcedemicYear(savedAcademicDetails.getAcademicYear());
-			paymentDetails.setStudentClass(savedAcademicDetails.getStudentClass());
-
-			// Set PaymentMode
-			if (paymentDTO.getPaymentModeId() != null) {
-				paymentModeRepository.findById(paymentDTO.getPaymentModeId()).ifPresent(paymentDetails::setPaymenMode);
-			}
-
-			paymentDetails.setStatus(defaultStatus);
-			// 💾 SAVE NEW Payment Record
-			PaymentDetails savedPaymentDetails = paymentDetailsRepository.save(paymentDetails);
-
+	
 			// ==============================================================
-			// 🔄 TRANSACTION (Only for DD / Cheque — Always NEW Transaction)
+			// 🔑 PART 4: CREATE THE PAYMENT AND TRANSACTION (New Logic)
 			// ==============================================================
-			Integer paymentModeId = paymentDTO.getPaymentModeId();
-			final int DD_PAYMENT_ID = 2;
-			final int CHEQUE_PAYMENT_ID = 3;
-
-			if (paymentModeId != null && (paymentModeId == DD_PAYMENT_ID || paymentModeId == CHEQUE_PAYMENT_ID)) {
-
-				StudentApplicationTransaction transaction = new StudentApplicationTransaction(); // 🔥 Always NEW
-
-				transaction.setPaymentDetails(savedPaymentDetails);
-				transaction.setPaymentMode(savedPaymentDetails.getPaymenMode());
-				transaction.setNumber(paymentDTO.getTransactionNumber());
-				transaction.setDate(paymentDTO.getTransactionDate());
-				transaction.setApplication_fee_pay_date(paymentDTO.getPaymentDate());
-				transaction.setCreated_by(paymentDTO.getCreatedBy());
-				transaction.setStatus("Pending"); // default
-
-				// DD / Cheque extra fields
-				transaction.setIfsc_code(paymentDTO.getIfscCode());
-				if (paymentDTO.getOrganisationId() != null)
-					transaction.setOrg_id(paymentDTO.getOrganisationId());
-				if (paymentDTO.getBankId() != null)
-					orgBankRepository.findById(paymentDTO.getBankId()).ifPresent(transaction::setOrgBank);
-				if (paymentDTO.getBranchId() != null)
-					orgBankBranchRepository.findById(paymentDTO.getBranchId()).ifPresent(transaction::setOrgBankBranch);
-				if (paymentDTO.getCityId() != null)
-					cityRepository.findById(paymentDTO.getCityId()).ifPresent(transaction::setCity);
-
-				// 💾 SAVE NEW Transaction
-				studentApplicationTransactionRepository.save(transaction);
+			// ==============================================================
+			// 🔑 PART 4: ALWAYS CREATE NEW PAYMENT + TRANSACTION
+			// ==============================================================
+			PaymentDetailsDTO paymentDTO = formData.getPaymentDetails();
+	
+			if (paymentDTO != null && paymentDTO.getAmount() != null) {
+	
+				// 🟢 Always create NEW payment record
+				PaymentDetails paymentDetails = new PaymentDetails();
+				paymentDetails.setStudentAcademicDetails(savedAcademicDetails);
+				paymentDetails.setApplication_fee_pay_date(paymentDTO.getPaymentDate());
+				paymentDetails.setPre_print_receipt_no(paymentDTO.getPrePrintedReceiptNo());
+				paymentDetails.setRemarks(paymentDTO.getRemarks());
+				paymentDetails.setCreated_by(paymentDTO.getCreatedBy());
+				paymentDetails.setApp_fee(paymentDTO.getAmount());
+				paymentDetails.setPaid_amount(paymentDTO.getAmount());
+				paymentDetails.setAcedemicYear(savedAcademicDetails.getAcademicYear());
+				paymentDetails.setStudentClass(savedAcademicDetails.getStudentClass());
+	
+				// Set PaymentMode
+				if (paymentDTO.getPaymentModeId() != null) {
+					paymentModeRepository.findById(paymentDTO.getPaymentModeId()).ifPresent(paymentDetails::setPaymenMode);
+				}
+	
+				paymentDetails.setStatus(defaultStatus);
+				// 💾 SAVE NEW Payment Record
+				PaymentDetails savedPaymentDetails = paymentDetailsRepository.save(paymentDetails);
+	
+				// ==============================================================
+				// 🔄 TRANSACTION (Only for DD / Cheque — Always NEW Transaction)
+				// ==============================================================
+				Integer paymentModeId = paymentDTO.getPaymentModeId();
+				final int DD_PAYMENT_ID = 2;
+				final int CHEQUE_PAYMENT_ID = 3;
+	
+				if (paymentModeId != null && (paymentModeId == DD_PAYMENT_ID || paymentModeId == CHEQUE_PAYMENT_ID)) {
+	
+					StudentApplicationTransaction transaction = new StudentApplicationTransaction(); // 🔥 Always NEW
+	
+					transaction.setPaymentDetails(savedPaymentDetails);
+					transaction.setPaymentMode(savedPaymentDetails.getPaymenMode());
+					transaction.setNumber(paymentDTO.getTransactionNumber());
+					transaction.setDate(paymentDTO.getTransactionDate());
+					transaction.setApplication_fee_pay_date(paymentDTO.getPaymentDate());
+					transaction.setCreated_by(paymentDTO.getCreatedBy());
+					transaction.setStatus("Pending"); // default
+	
+					// DD / Cheque extra fields
+					transaction.setIfsc_code(paymentDTO.getIfscCode());
+					if (paymentDTO.getOrganisationId() != null)
+						transaction.setOrg_id(paymentDTO.getOrganisationId());
+					if (paymentDTO.getBankId() != null)
+						orgBankRepository.findById(paymentDTO.getBankId()).ifPresent(transaction::setOrgBank);
+					if (paymentDTO.getBranchId() != null)
+						orgBankBranchRepository.findById(paymentDTO.getBranchId()).ifPresent(transaction::setOrgBankBranch);
+					if (paymentDTO.getCityId() != null)
+						cityRepository.findById(paymentDTO.getCityId()).ifPresent(transaction::setCity);
+	
+					// 💾 SAVE NEW Transaction
+					studentApplicationTransactionRepository.save(transaction);
+				}
 			}
+	
+			return "College enrollment confirmed, concessions and payment details updated for student: "
+					+ formData.getStudAdmsNo();
 		}
-
-		return "College enrollment confirmed, concessions and payment details updated for student: "
-				+ formData.getStudAdmsNo();
-	}
 }

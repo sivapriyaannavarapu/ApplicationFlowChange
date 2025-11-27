@@ -580,6 +580,7 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
 
     // 6. Build and return DTO
     CampusAndZoneDTO resultDTO = new CampusAndZoneDTO();
+    resultDTO.setApplicationNo(applicationNo);
     resultDTO.setCampusId(campusId);
     resultDTO.setCampusName(campusName);
     resultDTO.setZoneId(zoneId);
@@ -659,15 +660,8 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
 		academicDetails.setAdms_date(LocalDate.now());
 		academicDetails.setApp_sale_date(formData.getAppSaleDate());
 		academicDetails.setIs_active(1);
- 
-		
-		if (formData.getProId() != null) {
-		    // Convert the Integer Employee ID from the DTO to a String
-		    String referredByEmployeeId = String.valueOf(formData.getProId());
-		    
-		    // Set the String value in the admission_referred_by column
-		    academicDetails.setAdmission_referred_by(referredByEmployeeId);
-		}
+
+		    academicDetails.setAdmission_referred_by(formData.getAdmissionReferedBy());
  
 		if (formData.getGenderId() != null)
 			genderRepo.findById(formData.getGenderId()).ifPresent(academicDetails::setGender);
@@ -688,10 +682,6 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
 		Campus campus = campusRepo.findById(formData.getBranchId())
 				.orElseThrow(() -> new EntityNotFoundException("Invalid Branch ID: " + formData.getBranchId()));
 		academicDetails.setCampus(campus);
- 
-		if (formData.getProId() != null && formData.getProId() > 0) {
-			employeeRepo.findById(formData.getProId()).ifPresent(academicDetails::setEmployee);
-		}
  
 		academicDetails.setCreated_by(formData.getCreatedBy());
 		academicDetails.setEmployee(pro);
@@ -847,11 +837,18 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
 		            if (paymentDTO.getBranchId() != null) {
 		                orgBankBranchRepo.findById(paymentDTO.getBranchId()).ifPresent(transaction::setOrgBankBranch);
 		            }
+		            transaction.setIfsc_code(paymentDTO.getIfscCode());
+		            
+		            if (paymentDTO.getCityId() != null) {
+		                cityRepo.findById(paymentDTO.getCityId()).ifPresent(transaction::setCity);
+		            }
 		            
 		        } else if (paymentModeId == CHEQUE_PAYMENT_ID) {
 		            // --- Set Cheque-SpecFfic Fields ---
 		            transaction.setIfsc_code(paymentDTO.getIfscCode());
-		            
+		            if (paymentDTO.getOrganisationId() != null) {
+		                transaction.setOrg_id(paymentDTO.getOrganisationId());
+		            }
 		            if (paymentDTO.getCityId() != null) {
 		                cityRepo.findById(paymentDTO.getCityId()).ifPresent(transaction::setCity);
 		            }
@@ -914,13 +911,8 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
 		academicDetails.setAdms_date(LocalDate.now());
 		academicDetails.setApp_sale_date(formData.getAppSaleDate());
 		
-		if (formData.getProId() != null) {
-		    // Convert the Integer Employee ID from the DTO to a String
-		    String referredByEmployeeId = String.valueOf(formData.getProId());
-		    
 		    // Set the String value in the admission_referred_by column
-		    academicDetails.setAdmission_referred_by(referredByEmployeeId);
-		}
+		    academicDetails.setAdmission_referred_by(formData.getAdmissionReferedBy());
  
 		if (formData.getGenderId() != null)
 			genderRepo.findById(formData.getGenderId()).ifPresent(academicDetails::setGender);
@@ -938,10 +930,6 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
 		Campus campus = campusRepo.findById(formData.getBranchId())
 				.orElseThrow(() -> new EntityNotFoundException("Invalid Branch ID: " + formData.getBranchId()));
 		academicDetails.setCampus(campus);
- 
-		if (formData.getProId() != null && formData.getProId() > 0) {
-			employeeRepo.findById(formData.getProId()).ifPresent(academicDetails::setEmployee);
-		}
  
 		academicDetails.setCreated_by(formData.getCreatedBy());
 		academicDetails.setEmployee(pro);
@@ -1056,7 +1044,24 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
         }
         // Assuming admissionReferredBy on academicDetails is the ID/Name String? Adjust if it's an object.
         // detailsDTO.setAdmissionReferredById(...); // Map based on how referred by is stored
-        // detailsDTO.setAdmissionReferredByName(student.getAdmission_referred_by());
+        String referredBy = student.getAdmission_referred_by();
+
+        if (referredBy != null && !referredBy.trim().isEmpty()) {
+            try {
+                Integer empId = Integer.valueOf(referredBy);
+                detailsDTO.setAdmissionReferredById(empId);
+
+                employeeRepo.findById(empId).ifPresentOrElse(emp -> {
+                    detailsDTO.setAdmissionReferredByName(
+                        emp.getFirst_name() + (emp.getLast_name() != null ? " " + emp.getLast_name() : "")
+                    );
+                }, () -> detailsDTO.setAdmissionReferredByName(referredBy));
+
+            } catch (NumberFormatException e) {
+            	detailsDTO.setAdmissionReferredById(null);
+            	detailsDTO.setAdmissionReferredByName(referredBy);
+            }
+        }
 
         if (student.getQuota() != null) {
             detailsDTO.setQuotaId(student.getQuota().getQuota_id());
@@ -1067,8 +1072,13 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
             detailsDTO.setAcademicYearValue(student.getAcademicYear().getAcademicYear());       
             }
         if (student.getCampus() != null) {
-            detailsDTO.setBranchId(student.getCampus().getCampusId());
-            detailsDTO.setBranchName(student.getCampus().getCampusName());
+        	detailsDTO.setBranchId(student.getCampus().getCampusId());
+        	detailsDTO.setBranchName(student.getCampus().getCampusName());
+
+            if (student.getCampus().getCity() != null) {
+            	detailsDTO.setCityId(student.getCampus().getCity().getCityId());
+            	detailsDTO.setCityName(student.getCampus().getCity().getCityName());
+            }
         }
         if (student.getStudentType() != null) {
             detailsDTO.setStudentTypeId(student.getStudentType().getStud_type_id());
@@ -1078,10 +1088,10 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
             detailsDTO.setJoiningClassId(student.getStudentClass().getClassId());
             detailsDTO.setJoiningClassName(student.getStudentClass().getClassName());
         }
-         if (student.getCampusSchoolType() != null) { // Assuming this is Branch Type
-             detailsDTO.setBranchTypeId(student.getCampusSchoolType().getSchool_type_id());
-             detailsDTO.setBranchTypeName(student.getCampusSchoolType().getSchool_type_name());
-         }
+//         if (student.getCampusSchoolType() != null) { //	 Assuming this is Branch Type
+//             detailsDTO.setBranchTypeId(student.getCampusSchoolType().getSchool_type_id());
+//             detailsDTO.setBranchTypeName(student.getCampusSchoolType().getSchool_type_name());
+//         }
         if (student.getAdmissionType() != null) {
             detailsDTO.setAdmissionTypeId(student.getAdmissionType().getAdms_type_id());
             detailsDTO.setAdmissionTypeName(student.getAdmissionType().getAdms_type_name());
@@ -1137,161 +1147,127 @@ public CampusAndZoneDTO getApplicationDetailsWithFee(long applicationNo) {
     }
 	
 	
-	@Transactional // Ensures atomicity: all updates succeed or all rollback
-	public StudentSaleDTO updateApplicationDetails(StudentSaleDTO saleDTO) {
-	    Long studAdmsNo = saleDTO.getStudAdmsNo();
-	    
-	    // 1. Fetch the main academic record (must exist for an update)
-	    StudentAcademicDetails academicDetails = academicDetailsRepo.findByStudAdmsNo(studAdmsNo)
-	        .orElseThrow(() -> new EntityNotFoundException("Student not found with Admission No: " + studAdmsNo));
+@Transactional
+public StudentSaleDTO updateApplicationDetails(StudentSaleDTO saleDTO) {
 
-	    // 2. Fetch related records - use Optional for convenience
-	    // For update, it's safer to fetch existing related records or initialize new ones.
-	    StudentPersonalDetails personalDetails = personalDetailsRepo.findByStudentAcademicDetails(academicDetails)
-	        .orElse(new StudentPersonalDetails());
-	    personalDetails.setStudentAcademicDetails(academicDetails); // Set the relationship
+    Long studAdmsNo = saleDTO.getStudAdmsNo();
 
-	    // Assuming Father has relationTypeId = 1
-	    ParentDetails fatherDetails = parentDetailsRepo.findByStudentAcademicDetailsAndStudentRelationRelationId(academicDetails, 1)
-	        .orElse(new ParentDetails());
-	    fatherDetails.setStudentAcademicDetails(academicDetails);
-	    // You'll need to fetch and set the StudentRelation object for Father (ID 1)
-	    // For brevity, I'm assuming you have access to a repository for StudentRelation
-	    // fatherDetails.setStudentRelation(studentRelationRepo.findById(1).orElseThrow(() -> new EntityNotFoundException("Relation type not found")));
+    // 1. Fetch main entity
+    StudentAcademicDetails academicDetails = academicDetailsRepo.findByStudAdmsNo(studAdmsNo)
+        .orElseThrow(() -> new EntityNotFoundException("Student not found with Admission No: " + studAdmsNo));
 
-	    StudentAddress studentAddress = addressRepo.findByStudentAcademicDetails(academicDetails)
-	        .orElse(new StudentAddress());
-	    studentAddress.setStudentAcademicDetails(academicDetails);
-	    
-	    // --- MAP DTO TO ENTITIES ---
+    // 2. Fetch related records
+    StudentPersonalDetails personalDetails = personalDetailsRepo.findByStudentAcademicDetails(academicDetails)
+        .orElse(new StudentPersonalDetails());
+    personalDetails.setStudentAcademicDetails(academicDetails);
 
-	    // 3. Map Academic Details (StudentAcademicDetails)
-	    academicDetails.setFirst_name(saleDTO.getFirstName());
-	    academicDetails.setLast_name(saleDTO.getLastName());
-	    academicDetails.setApaar_no(saleDTO.getApaarNo());
-	    if (saleDTO.getProReceiptNo() != null) {
-	        // Assuming StudentAcademicDetails.setPro_receipt_no() expects an int/Integer
-	        academicDetails.setPro_receipt_no(saleDTO.getProReceiptNo().intValue());
-	    }
-	    
-	    if (saleDTO.getGenderId() != null) {
-	        academicDetails.setGender(
-	            genderRepo.findById(saleDTO.getGenderId())
-	                .orElseThrow(() -> new EntityNotFoundException("Gender not found"))
-	        );
-	    }
+    ParentDetails fatherDetails = parentDetailsRepo
+        .findByStudentAcademicDetailsAndStudentRelationRelationId(academicDetails, 1)
+        .orElse(new ParentDetails());
+    fatherDetails.setStudentAcademicDetails(academicDetails);
 
-	    if (saleDTO.getQuotaId() != null) {
-	        academicDetails.setQuota(
-	            quotaRepo.findById(saleDTO.getQuotaId())
-	                .orElseThrow(() -> new EntityNotFoundException("Quota not found"))
-	        );
-	    }
-	    if (saleDTO.getAcademicYearId() != null) {
-	        academicDetails.setAcademicYear(
-	            academicYearRepository.findById(saleDTO.getAcademicYearId())
-	                .orElseThrow(() -> new EntityNotFoundException("Academic year not found"))
-	        );
-	    }
-	   
-	    if (saleDTO.getBranchId() != null) {
-	        academicDetails.setCampus(
-	            campusRepo.findById(saleDTO.getBranchId())
-	                .orElseThrow(() -> new EntityNotFoundException("Campus not found"))
-	        );
-	    }
-	    if (saleDTO.getStudentTypeId() != null) {
-	        academicDetails.setStudentType(
-	            studentTypeRepo.findById(saleDTO.getStudentTypeId())
-	                .orElseThrow(() -> new EntityNotFoundException("Student type not found"))
-	        );
-	    }
+    StudentAddress studentAddress = addressRepo.findByStudentAcademicDetails(academicDetails)
+        .orElse(new StudentAddress());
+    studentAddress.setStudentAcademicDetails(academicDetails);
 
-	    if (saleDTO.getClassId() != null) {
-	        academicDetails.setStudentClass(
-	            classRepo.findById(saleDTO.getClassId())
-	                .orElseThrow(() -> new EntityNotFoundException("Class not found"))
-	        );
-	    }
+    // --------------------------
+    // 3. UPDATE ACADEMIC DETAILS
+    // --------------------------
+    if (saleDTO.getFirstName() != null) academicDetails.setFirst_name(saleDTO.getFirstName());
+    if (saleDTO.getLastName() != null) academicDetails.setLast_name(saleDTO.getLastName());
+    if (saleDTO.getApaarNo() != null) academicDetails.setApaar_no(saleDTO.getApaarNo());
 
-//	    if (saleDTO.getSchoolTypeId() != null) {
-//	        academicDetails.setCampusSchoolType(
-//	            campusSchoolTypeRepo.findById(saleDTO.getSchoolTypeId())
-//	                .orElseThrow(() -> new EntityNotFoundException("School type not found"))
-//	        );
-//	    }
+    if (saleDTO.getProReceiptNo() != null)
+        academicDetails.setPro_receipt_no(saleDTO.getProReceiptNo().intValue());
 
-	    if (saleDTO.getAppTypeId() != null) {
-	        academicDetails.setAdmissionType(
-	            admissionTypeRepo.findById(saleDTO.getAppTypeId())
-	                .orElseThrow(() -> new EntityNotFoundException("Admission type not found"))
-	        );
-	    }
-	    
-	    // 4. Map Personal Details (StudentPersonalDetails)
-	    personalDetails.setDob(saleDTO.getDob());
-	    personalDetails.setStud_aadhaar_no(saleDTO.getAadharCardNo());
+    if (saleDTO.getGenderId() != null)
+        academicDetails.setGender(genderRepo.findById(saleDTO.getGenderId())
+            .orElseThrow(() -> new EntityNotFoundException("Gender not found")));
 
-	    // 5. Map Parent Details (Father only - ParentDetails)
-	    fatherDetails.setName(saleDTO.getFatherName());
-	    fatherDetails.setMobileNo(saleDTO.getFatherMobileNo());
-	    
-	    StudentOrientationDetails orientationDetails = studentOrientationDetailsRepo.findByStudentAcademicDetails(academicDetails)
-	    	    .orElse(new StudentOrientationDetails());
-	    	orientationDetails.setStudentAcademicDetails(academicDetails);
+    if (saleDTO.getQuotaId() != null)
+        academicDetails.setQuota(quotaRepo.findById(saleDTO.getQuotaId())
+            .orElseThrow(() -> new EntityNotFoundException("Quota not found")));
 
-	    	
-	    	if (saleDTO.getOrientationId() != null) {
-	    	    orientationRepo.findById(saleDTO.getOrientationId())
-	    	        .ifPresent(orientationDetails::setOrientation);
-	    	}
-	    	
-	    	studentOrientationDetailsRepo.save(orientationDetails);
+    if (saleDTO.getAcademicYearId() != null)
+        academicDetails.setAcademicYear(academicYearRepository.findById(saleDTO.getAcademicYearId())
+            .orElseThrow(() -> new EntityNotFoundException("Academic Year not found")));
 
-	    // 6. Map Address Details (StudentAddress)
-	    AddressDetailsDTO addressDTO = saleDTO.getAddressDetails();
-	    if (addressDTO != null) {
-	        studentAddress.setHouse_no(addressDTO.getDoorNo());
-	        studentAddress.setStreet(addressDTO.getStreet());
-	        studentAddress.setLandmark(addressDTO.getLandmark());
-	        studentAddress.setArea(addressDTO.getArea());
-	        studentAddress.setPostalCode(addressDTO.getPincode());
-	        
-	        if (addressDTO.getDistrictId() != null) {
-	            studentAddress.setDistrict(
-	                districtRepo.findById(addressDTO.getDistrictId())
-	                    .orElseThrow(() -> new EntityNotFoundException("District not found"))
-	            );
-	        }
+    if (saleDTO.getBranchId() != null)
+        academicDetails.setCampus(campusRepo.findById(saleDTO.getBranchId())
+            .orElseThrow(() -> new EntityNotFoundException("Campus not found")));
 
-	        // Mandal
-	        if (addressDTO.getMandalId() != null) {
-	            studentAddress.setMandal(
-	                mandalRepository.findById(addressDTO.getMandalId())
-	                    .orElseThrow(() -> new EntityNotFoundException("Mandal not found"))
-	            );
-	        }
+    if (saleDTO.getStudentTypeId() != null)
+        academicDetails.setStudentType(studentTypeRepo.findById(saleDTO.getStudentTypeId())
+            .orElseThrow(() -> new EntityNotFoundException("Student type not found")));
 
-	        // City
-	        if (addressDTO.getCityId() != null) {
-	            studentAddress.setCity(
-	                cityRepo.findById(addressDTO.getCityId())
-	                    .orElseThrow(() -> new EntityNotFoundException("City not found"))
-	            );
-	        }
-	        // Map DTO IDs to entity objects (City, Mandal, District)
-	        // Similar to Academic details, fetch and set the actual entity objects (e.g., District, Mandal, City)
-	    }
+    if (saleDTO.getClassId() != null)
+        academicDetails.setStudentClass(classRepo.findById(saleDTO.getClassId())
+            .orElseThrow(() -> new EntityNotFoundException("Class not found")));
 
-	    // --- SAVE ALL ENTITIES ---
-	    // The save() method of Spring Data JPA handles both INSERT and UPDATE (MERGE)
-	    academicDetailsRepo.save(academicDetails);
-	    personalDetailsRepo.save(personalDetails);
-	    parentDetailsRepo.save(fatherDetails);
-	    addressRepo.save(studentAddress);
+    if (saleDTO.getAppTypeId() != null)
+        academicDetails.setAdmissionType(admissionTypeRepo.findById(saleDTO.getAppTypeId())
+            .orElseThrow(() -> new EntityNotFoundException("Admission type not found")));
 
-	    // *Optional:* Re-fetch and map the saved data back to a DTO to return the complete, persisted state
-	    // For simplicity, we just return the input DTO, but a full service implementation might re-run the GET logic.
-	    return saleDTO; 
-	}
+    // --------------------------
+    // 4. UPDATE PERSONAL DETAILS
+    // --------------------------
+    if (saleDTO.getDob() != null) personalDetails.setDob(saleDTO.getDob());
+    if (saleDTO.getAadharCardNo() != null) personalDetails.setStud_aadhaar_no(saleDTO.getAadharCardNo());
+
+    // --------------------------
+    // 5. UPDATE PARENT DETAILS
+    // --------------------------
+    if (saleDTO.getFatherName() != null) fatherDetails.setName(saleDTO.getFatherName());
+    if (saleDTO.getFatherMobileNo() != null) fatherDetails.setMobileNo(saleDTO.getFatherMobileNo());
+
+    // --------------------------
+    // 6. UPDATE ORIENTATION
+    // --------------------------
+    StudentOrientationDetails orientationDetails =
+        studentOrientationDetailsRepo.findByStudentAcademicDetails(academicDetails)
+            .orElse(new StudentOrientationDetails());
+    orientationDetails.setStudentAcademicDetails(academicDetails);
+
+    if (saleDTO.getOrientationId() != null)
+        orientationDetails.setOrientation(orientationRepo.findById(saleDTO.getOrientationId())
+            .orElseThrow(() -> new EntityNotFoundException("Orientation not found")));
+
+    studentOrientationDetailsRepo.save(orientationDetails);
+
+    // --------------------------
+    // 7. UPDATE ADDRESS
+    // --------------------------
+    AddressDetailsDTO addressDTO = saleDTO.getAddressDetails();
+    if (addressDTO != null) {
+
+        if (addressDTO.getDoorNo() != null) studentAddress.setHouse_no(addressDTO.getDoorNo());
+        if (addressDTO.getStreet() != null) studentAddress.setStreet(addressDTO.getStreet());
+        if (addressDTO.getLandmark() != null) studentAddress.setLandmark(addressDTO.getLandmark());
+        if (addressDTO.getArea() != null) studentAddress.setArea(addressDTO.getArea());
+        if (addressDTO.getPincode() != null) studentAddress.setPostalCode(addressDTO.getPincode());
+
+        if (addressDTO.getDistrictId() != null)
+            studentAddress.setDistrict(districtRepo.findById(addressDTO.getDistrictId())
+                .orElseThrow(() -> new EntityNotFoundException("District not found")));
+
+        if (addressDTO.getMandalId() != null)
+            studentAddress.setMandal(mandalRepository.findById(addressDTO.getMandalId())
+                .orElseThrow(() -> new EntityNotFoundException("Mandal not found")));
+
+        if (addressDTO.getCityId() != null)
+            studentAddress.setCity(cityRepo.findById(addressDTO.getCityId())
+                .orElseThrow(() -> new EntityNotFoundException("City not found")));
+    }
+
+    // --------------------------
+    // 8. SAVE ALL ENTITIES
+    // --------------------------
+    academicDetailsRepo.save(academicDetails);
+    personalDetailsRepo.save(personalDetails);
+    parentDetailsRepo.save(fatherDetails);
+    addressRepo.save(studentAddress);
+
+    return saleDTO;
+}
+
 }

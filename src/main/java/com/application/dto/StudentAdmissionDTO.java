@@ -109,7 +109,7 @@ public class StudentAdmissionDTO {
     private AddressDetailsDTO addressDetails;
     // --- Hidden/System Fields ---
     private Long studAdmsNo;    // This is your "Application No"
-    private Integer proId;        // The Employee ID from the "Employee" dropdown
+//    private Integer proId;        // The Employee ID from the "Employee" dropdown
     private Integer createdBy;    // This 'createdBy' is for the Student record
     // --- Payment Details (Step 2) ---
     /**

@@ -13,11 +13,6 @@ import lombok.NoArgsConstructor;
 public class StudentConfirmationDTO {
 
     // --- Student Info ---
-    
-    /**
-     * --- FIX: Changed from String to Long ---
-     * This must match the repository and entity data type.
-     */
     private Long studAdmsNo; // The Admission No we are confirming
     
     private Integer createdBy; // The user performing the confirmation
@@ -26,6 +21,8 @@ public class StudentConfirmationDTO {
     // --- Personal Info ---
     private Integer foodTypeId;
     private Integer bloodGroupId;
+    private Integer casteId;
+    private Integer religionId;
 
     // --- Academic Info ---
     private String htNo; // Hallticket Number
@@ -47,6 +44,9 @@ public class StudentConfirmationDTO {
     // --- Sibling Info (List) ---
     // Uses your existing SiblingDTO
     private List<SiblingDTO> siblings;
+    
+    private List<LanguageDTO> languages; 
+
 
     // --- Concession Info (List) ---
     private List<ConcessionConfirmationDTO> concessions;

@@ -16,7 +16,8 @@ public class ApplicationDetailsDTO {
     private String genderName; // For display
     private String apaarNo;
     private Date dob; // Date of Birth
-    private Integer admissionReferredById; // Assuming ID is stored, adjust if name
+//    private Integer admissionReferredById; // Assuming ID is stored, adjust if name
+    private Integer admissionReferredById;
     private String admissionReferredByName; // For display
     private Integer quotaId;
     private String quotaName; // For display
@@ -36,10 +37,12 @@ public class ApplicationDetailsDTO {
     private String joiningClassName; // For display
     private Integer orientationId;
     private String orientationName; // For display
-    private Integer branchTypeId; // Campus School Type ID
-    private String branchTypeName; // For display
+//    private Integer branchTypeId; // Campus School Type ID
+//    private String branchTypeName; // For display
     private Integer admissionTypeId;
     private String admissionTypeName; // For display
+    private Integer cityId;
+    private String cityName;
  
     // Address Information
     private AddressDetailsNewDTO addressDetails;

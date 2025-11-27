@@ -1,5 +1,6 @@
 package com.application.entity;
  
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -9,9 +10,6 @@ import lombok.NoArgsConstructor;
  
  
 @Entity
- 
- 
- 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,5 +20,9 @@ public class ApplicationStatus {
 	@Id
 	private int status_id;
 	private String status;
+	
+	@Column(name = "is_active")
+	private int isActive;
+
 	
 }

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CampusAndZoneDTO {
+	private Long applicationNo;
     private Integer campusId;
     private String campusName;
     private Integer zoneId;

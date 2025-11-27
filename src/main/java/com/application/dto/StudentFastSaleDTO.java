@@ -28,15 +28,16 @@ public class StudentFastSaleDTO {
     private Integer appTypeId;
     // Admission Referred By
     private Integer quotaId; // From Quota select
-//    private Date app_sale_date;
+    private Date app_sale_date;
+    private String admissionReferredBy;
 
     // Parent Information
     private String fatherName;
     private Long fatherMobileNo; // Phone Number
-    private Integer proId; 
+//    private Integer proId; 
     // Orientation Information
     private Integer academicYearId; // AY 2025-2026 select (or fixed)
-    private Integer cityId; // Select City (may be for filtering, not saved directly)
+//    private Integer cityId; // Select City (may be for filtering, not saved directly)
     private Integer branchId; // Select Branch (Campus)
     private Integer classId; // Joining Class select
     private Integer orientationId; // Orientation Name select

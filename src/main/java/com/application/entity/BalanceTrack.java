@@ -53,7 +53,7 @@ public class BalanceTrack {
     @JoinColumn(name = "issued_type_id", referencedColumnName = "app_issued_id")
     private AppIssuedType issuedByType;
     
-    private float amount;	
+    private Float amount;	
     @Column(name = "issued_to_pro_id")
     private Integer issuedToProId;
 }

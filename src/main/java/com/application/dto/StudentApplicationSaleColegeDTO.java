@@ -18,6 +18,7 @@ public class StudentApplicationSaleColegeDTO {
     private String schoolName;            // "School Name" (Assuming text or value)
     private String scoreAppNo;            // "Score App No"
     private Integer scoreMarks;           // "Score Marks"
+    private Integer schoolType;
     private Long proReceiptNo;
     private Integer foodTypeId;           // "Food Type"
     private Integer bloodGroupId;         // "Blood Group"
@@ -30,10 +31,10 @@ public class StudentApplicationSaleColegeDTO {
     private Date dob; // mm/dd/yyyy string
     private Long aadharCardNo;
     private String apaarNo;
-    private Integer proId; // Employee ID (Select Employee ID)
     private Integer appTypeId; // Admission Type
     private Integer quotaId; // Quota/Admission Referred By
     private Date appSaleDate;
+    private String admissionReferedBy;
 
     // Parent Information
     private String fatherName;
@@ -49,7 +50,7 @@ public class StudentApplicationSaleColegeDTO {
 
     // Orientation Information
     private Integer academicYearId;
-    private Integer cityId; // Select City
+//    private Integer cityId; // Select City
     private Integer branchId; // Select Branch
     private Integer classId; // Joining Class
     private Integer orientationId; // Course Name (assuming ID)

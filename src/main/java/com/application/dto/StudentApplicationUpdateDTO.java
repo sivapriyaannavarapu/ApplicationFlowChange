@@ -33,7 +33,7 @@ public class StudentApplicationUpdateDTO {
     private Date dob; // mm/dd/yyyy string
     private Long aadharCardNo;
     private String apaarNo;
-    private Integer proId; // Employee ID (Select Employee ID)
+    private String admissionReferredBy;
     private Integer appTypeId; // Admission Type
     private Integer quotaId; // Quota/Admission Referred By
     private Date appSaleDate;

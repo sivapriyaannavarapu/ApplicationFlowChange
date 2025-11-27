@@ -86,8 +86,9 @@ public class ApplicationDamagedService {
 
     @Cacheable(value = "allStatuses")
     public List<ApplicationStatus> getAllStatus() {
-        return applicationStatusRepository.findAll();
+        return applicationStatusRepository.findByIsActive(1);
     }
+
 
     @Cacheable(value = "zonesDropdown")
     public List<GenericDropdownDTO> getAllZones() {

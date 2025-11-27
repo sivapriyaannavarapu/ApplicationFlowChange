@@ -32,8 +32,8 @@ public class StudentApplicationSingleDTO {
     private Integer branchId;
     private String branchName; // Campus
     
-    private Integer proId; // Employee
-    private String proName;
+    private Integer admissionReferredByID; // Employee
+    private String admissionReferredByName;
     
     private Integer quotaId;
     private String quotaName;
@@ -49,6 +49,9 @@ public class StudentApplicationSingleDTO {
     
     private Integer studyTypeId;
     private String studyTypeName;
+    
+    private Integer cityId;
+    private String cityName;
 
     // Previous School
     private String preSchoolName;

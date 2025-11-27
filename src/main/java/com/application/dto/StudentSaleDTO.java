@@ -23,6 +23,7 @@ public class StudentSaleDTO {
     private Integer quotaId;      // From "Quota/Admission Referred By"
     private Long proReceiptNo;
     private Date appSaleDate;
+    private String admissionReferedBy;
  
     // --- Parent Information (Step 1) ---
     private String fatherName;
@@ -40,6 +41,5 @@ public class StudentSaleDTO {
     private AddressDetailsDTO addressDetails;
     // --- Hidden/System Fields ---
     private Long studAdmsNo;    // This is your "Application No"
-    private Integer proId;        // The Employee ID from the "Employee" dropdown
     private Integer createdBy;    // This 'createdBy' is for the Student record
 }

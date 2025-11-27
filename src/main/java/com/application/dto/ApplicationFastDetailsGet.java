@@ -13,7 +13,7 @@ public class ApplicationFastDetailsGet {
 	
 	
 	 // Personal Information
-    private Long proReceiptNo;
+//    private Long proReceiptNo;
     private String firstName;
     private String lastName;
     private Integer genderId;
@@ -25,8 +25,7 @@ public class ApplicationFastDetailsGet {
     private Integer quotaId;
     private String quotaName; // For display
     private Long aadharCardNo;
-    private Integer proId; 
-    private Integer appTypeId;
+//    private Integer proId; 
  
     // Parent Information
     private ParentSummaryDTO parentInfo;
@@ -46,6 +45,8 @@ public class ApplicationFastDetailsGet {
 //    private String branchTypeName; // For display
     private Integer admissionTypeId;
     private String admissionTypeName; // For display
+    private Integer cityId;
+    private String cityName;
     
     private Date orientationStartDate;
     private Date orientationEndDate;
