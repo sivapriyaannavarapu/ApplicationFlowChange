@@ -2,6 +2,8 @@ package com.application.dto;
 
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,6 +21,7 @@ public class ApplicationFastDetailsGet {
     private Integer genderId;
     private String genderName; // For display
     private String apaarNo;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date dob; // Date of Birth
     private Integer admissionReferredById; // Assuming ID is stored, adjust if name
     private String admissionReferredByName; // For display
@@ -47,8 +50,9 @@ public class ApplicationFastDetailsGet {
     private String admissionTypeName; // For display
     private Integer cityId;
     private String cityName;
-    
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date orientationStartDate;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date orientationEndDate;
     private Float orientationFee;
  

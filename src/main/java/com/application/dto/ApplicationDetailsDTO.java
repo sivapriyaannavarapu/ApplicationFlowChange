@@ -1,8 +1,11 @@
 package com.application.dto;
  
+import java.util.Date; // For dob
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.Date; // For dob
  
 @Data
 @NoArgsConstructor
@@ -15,6 +18,7 @@ public class ApplicationDetailsDTO {
     private Integer genderId;
     private String genderName; // For display
     private String apaarNo;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date dob; // Date of Birth
 //    private Integer admissionReferredById; // Assuming ID is stored, adjust if name
     private Integer admissionReferredById;

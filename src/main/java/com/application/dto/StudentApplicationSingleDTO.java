@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import lombok.Data;
 
 @Data
@@ -18,6 +20,7 @@ public class StudentApplicationSingleDTO {
     private String firstName;
     private String lastName;
     private String apaarNo;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date appSaleDate;
     private String hallTicketNo;
     private Integer scoreMarks;
@@ -64,6 +67,7 @@ public class StudentApplicationSingleDTO {
     // 2. PERSONAL DETAILS
     // ===========================
     private Long aadharNo;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date dob;
     
     private Integer casteId;
@@ -84,7 +88,9 @@ public class StudentApplicationSingleDTO {
     private Integer orientationId;
     private String orientationName;
     
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date orientationStartDate;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date orientationEndDate;
     private Float orientationFee;
     // ===========================
